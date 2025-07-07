@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Water Polo Logger</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    h2 { margin-top: 30px; }
+    .team-section { margin-bottom: 40px; }
+    .player-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    button { padding: 10px; font-size: 14px; }
+    .actions { margin-top: 10px; }
+    .summary-buttons { margin-top: 40px; }
+    .summary-buttons button { margin-right: 10px; }
+    select { padding: 6px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Water Polo Tracker</h1>
+
+<label for="quarterSelect">Current Quarter:</label>
+<select id="quarterSelect">
+  <option value="Q1">Q1</option>
+  <option value="Q2">Q2</option>
+  <option value="Q3">Q3</option>
+  <option value="Q4">Q4</option>
+</select>
+
+<div class="team-section">
+  <h2>White Team</h2>
+  <div class="player-grid">
+    <button onclick="selectPlayer('White', 1)">White 1</button>
+    <button onclick="selectPlayer('White', 2)">White 2</button>
+    <button onclick="selectPlayer('White', 3)">White 3</button>
+    <button onclick="selectPlayer('White', 4)">White 4</button>
+    <button onclick="selectPlayer('White', 5)">White 5</button>
+    <button onclick="selectPlayer('White', 6)">White 6</button>
+    <button onclick="selectPlayer('White', 7)">White 7</button>
+    <button onclick="selectPlayer('White', 8)">White 8</button>
+    <button onclick="selectPlayer('White', 9)">White 9</button>
+    <button onclick="selectPlayer('White', 10)">White 10</button>
+    <button onclick="selectPlayer('White', 11)">White 11</button>
+    <button onclick="selectPlayer('White', 12)">White 12</button>
+    <button onclick="selectPlayer('White', 13)">White 13</button>
+  </div>
+</div>
+
+<div class="team-section">
+  <h2>Dark Team</h2>
+  <div class="player-grid">
+    <button onclick="selectPlayer('Dark', 1)">Dark 1</button>
+    <button onclick="selectPlayer('Dark', 2)">Dark 2</button>
+    <button onclick="selectPlayer('Dark', 3)">Dark 3</button>
+    <button onclick="selectPlayer('Dark', 4)">Dark 4</button>
+    <button onclick="selectPlayer('Dark', 5)">Dark 5</button>
+    <button onclick="selectPlayer('Dark', 6)">Dark 6</button>
+    <button onclick="selectPlayer('Dark', 7)">Dark 7</button>
+    <button onclick="selectPlayer('Dark', 8)">Dark 8</button>
+    <button onclick="selectPlayer('Dark', 9)">Dark 9</button>
+    <button onclick="selectPlayer('Dark', 10)">Dark 10</button>
+    <button onclick="selectPlayer('Dark', 11)">Dark 11</button>
+    <button onclick="selectPlayer('Dark', 12)">Dark 12</button>
+    <button onclick="selectPlayer('Dark', 13)">Dark 13</button>
+  </div>
+</div>
+
+<div id="actionPanel" style="display:none;">
+  <h2>Actions for <span id="playerLabel"></span></h2>
+  <div class="actions">
+    <button onclick="submitAction('Block', 1)">Block</button>
+    <button onclick="submitAction('Score', 1)">Score</button>
+    <button onclick="submitAction('Assist', 1)">Assist</button>
+    <button onclick="submitAction('Swim Off win', 1)">Swim Off Win</button>
+    <button onclick="submitAction('Save', 1)">Save</button><br><br>
+    <button onclick="submitAction('Exclusion', -1)">Exclusion</button>
+    <button onclick="submitAction('Goal Let In', -1)">Goal Let In</button>
+    <button onclick="submitAction('Cap Off', -2)">Cap Off</button><br><br>
+    <button onclick="undoLastAction()">Undo Last Action</button>
+  </div>
+</div>
+
+<div class="summary-buttons">
+  <h2>View Summary</h2>
+  <button onclick="window.open('https://docs.google.com/spreadsheets/d/1RiNI5qZpQbMUD3np811Ifsppbrs88HVriJFfXoIN_CA/edit#gid=1741842403', '_blank')">Combined Score</button>
+  <button onclick="window.open('https://docs.google.com/spreadsheets/d/1RiNI5qZpQbMUD3np811Ifsppbrs88HVriJFfXoIN_CA/edit#gid=1746873069', '_blank')">Action Breakdown</button>
+  <button onclick="sendEmailSummary()">Email PDF Summary</button>
+</div>
+
+<script>
+  let selectedTeam = '';
+  let selectedPlayer = '';
+  let lastAction = null;
+
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbzPwNtBhrvzbPyhdhV0kIZeyQPt639jDzw-hzXhymLWj3mBTBl2KxnO9zs7Fb-A9IQ0aQ/exec';
+  const emailScriptURL = 'https://script.google.com/macros/s/AKfycbwz6rQB1-V53s2Erp83PyqJphQatV2GiXyvAU9USAkHrgxNyYeEkYdlvudad4dEgjN_TQ/exec';
+
+  function selectPlayer(team, player) {
+    selectedTeam = team;
+    selectedPlayer = player;
+    document.getElementById("playerLabel").innerText = `${team} ${player}`;
+    document.getElementById("actionPanel").style.display = 'block';
+  }
+
+  function submitAction(action, points) {
+    const quarter = document.getElementById("quarterSelect").value;
+    const payload = {
+      team: selectedTeam,
+      player: selectedPlayer,
+      action: action,
+      points: points,
+      quarter: quarter
+    };
+
+    lastAction = payload;
+
+    fetch(scriptURL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    document.getElementById("actionPanel").style.display = 'none';
+  }
+
+  function undoLastAction() {
+    if (!lastAction) return;
+
+    const undoPayload = {
+      ...lastAction,
+      undo: true
+    };
+
+    fetch(scriptURL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(undoPayload)
+    });
+
+    lastAction = null;
+    alert("Last action undone.");
+  }
+
+  function sendEmailSummary() {
+    fetch(emailScriptURL, {
+      method: 'GET',
+      mode: 'no-cors'
+    });
+    alert("Summary email sent (please check your inbox in a moment).");
+  }
+</script>
