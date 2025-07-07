@@ -7,8 +7,11 @@
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: #d5e6f6 url('watermark.png') no-repeat center center fixed;
-      background-size: cover;
+      background-color: #d5e6f6;
+      background-image: url('watermark.png');
+      background-repeat: no-repeat;
+      background-position: bottom right;
+      background-size: 300px;
       margin: 0;
       padding: 20px;
       position: relative;
@@ -178,7 +181,6 @@
   function logAction(action) {
     const quarter = document.getElementById('quarterSelect').value;
     console.log(`Action: ${action}, Player: ${selectedPlayer}, Quarter: ${quarter}`);
-    alert(`Logged: ${action} for ${selectedPlayer} in ${quarter}`);
     closeActionPanel();
   }
 
