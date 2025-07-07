@@ -7,7 +7,8 @@
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: #d5e6f6;
+      background: #d5e6f6 url('watermark.png') no-repeat center center fixed;
+      background-size: cover;
       margin: 0;
       padding: 20px;
       position: relative;
@@ -93,16 +94,6 @@
       border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .watermark {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      opacity: 0.1;
-      z-index: 0;
-    }
-    .watermark img {
-      height: 100px;
-    }
   </style>
 </head>
 <body>
@@ -160,8 +151,42 @@
   </div>
 </div>
 
-<div class="watermark">
-  <img src="watermark.png" alt="Watermark Logo">
+<div id="actionPanel" style="display:none;">
+  <h2 id="actionTitle"></h2>
+  <div class="actions">
+    <button onclick="logAction('Block')">Block (FP)</button>
+    <button onclick="logAction('Score')">Score</button>
+    <button onclick="logAction('Assist')">Assist</button>
+    <button onclick="logAction('Swim Off win')">Swim Off Win</button>
+    <button onclick="logAction('Save')">Save (GK)</button>
+    <button onclick="logAction('Exclusion')">Exclusion</button>
+    <button onclick="logAction('Goal Let In')">Goal Let In (GK)</button>
+    <button onclick="logAction('Cap Off')">Cap Off</button>
+    <button onclick="closeActionPanel()">Cancel</button>
+  </div>
 </div>
 
-<!-- Action panel and script will remain below -->
+<script>
+  let selectedPlayer = null;
+
+  function selectPlayer(team, number) {
+    selectedPlayer = `${team} ${number}`;
+    document.getElementById('actionTitle').innerText = `Log Action for ${selectedPlayer}`;
+    document.getElementById('actionPanel').style.display = 'block';
+  }
+
+  function logAction(action) {
+    const quarter = document.getElementById('quarterSelect').value;
+    console.log(`Action: ${action}, Player: ${selectedPlayer}, Quarter: ${quarter}`);
+    alert(`Logged: ${action} for ${selectedPlayer} in ${quarter}`);
+    closeActionPanel();
+  }
+
+  function closeActionPanel() {
+    document.getElementById('actionPanel').style.display = 'none';
+    selectedPlayer = null;
+  }
+</script>
+
+</body>
+</html>
