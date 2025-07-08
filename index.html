@@ -11,7 +11,7 @@
       background-image: url('watermark.png');
       background-repeat: no-repeat;
       background-position: bottom right;
-      background-size: 300px;
+      background-size: 150px;
       margin: 0;
       padding: 20px;
     }
@@ -47,7 +47,6 @@
     button {
       padding: 12px;
       font-size: 14px;
-      background-color: #fff;
       border: 2px solid #ccc;
       border-radius: 8px;
       cursor: pointer;
@@ -61,19 +60,19 @@
       background-color: #003366;
       color: #fff;
     }
-    .actions {
-      margin-top: 10px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .actions button {
-      background-color: #0066cc;
+    .positive {
+      background-color: #28a745;
       color: white;
-      font-weight: bold;
     }
-    .actions button:hover {
-      background-color: #004b99;
+    .positive:hover {
+      background-color: #218838;
+    }
+    .negative {
+      background-color: #dc3545;
+      color: white;
+    }
+    .negative:hover {
+      background-color: #c82333;
     }
     .summary-buttons {
       margin-top: 40px;
@@ -105,20 +104,6 @@
       font-weight: bold;
       margin: 20px 0;
     }
-    .mic-button {
-      display: block;
-      margin: 0 auto 20px auto;
-      padding: 10px 20px;
-      font-size: 14px;
-      background-color: #ff9900;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .mic-button:hover {
-      background-color: #cc7a00;
-    }
   </style>
 </head>
 <body>
@@ -133,7 +118,7 @@
   <input id="gameName" placeholder="Game name or date" />
 </div>
 
-<div style="text-align: center; margin-bottom: 10px;">
+<div style="text-align: center; margin-bottom: 20px;">
   <label for="quarterSelect">Current Quarter:</label>
   <select id="quarterSelect">
     <option value="Q1">Q1</option>
@@ -142,8 +127,6 @@
     <option value="Q4">Q4</option>
   </select>
 </div>
-
-<button class="mic-button" onclick="toggleMic()">🎙️ Start Voice</button>
 
 <div class="scoreboard">
   Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
@@ -167,7 +150,7 @@
   const whiteActions = document.getElementById('whiteActions');
   const darkActions = document.getElementById('darkActions');
 
-  const actions = ['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'];
+  const actions = ['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off','Missed Shot','5 Meter Against'];
 
   for (let i = 1; i <= 13; i++) {
     const whiteBtn = document.createElement('button');
@@ -183,16 +166,29 @@
   }
 
   actions.forEach(action => {
+    const cls = isPositive(action) ? 'positive' : (isNegative(action) ? 'negative' : '');
     const whiteActBtn = document.createElement('button');
     whiteActBtn.textContent = action;
+    whiteActBtn.className = cls;
     whiteActBtn.onclick = () => logAction(action);
     whiteActions.appendChild(whiteActBtn);
 
     const darkActBtn = document.createElement('button');
     darkActBtn.textContent = action;
+    darkActBtn.className = cls;
     darkActBtn.onclick = () => logAction(action);
     darkActions.appendChild(darkActBtn);
   });
+
+  const undoBtnWhite = document.createElement('button');
+  undoBtnWhite.textContent = 'Undo';
+  undoBtnWhite.onclick = () => undoAction();
+  whiteActions.appendChild(undoBtnWhite);
+
+  const undoBtnDark = document.createElement('button');
+  undoBtnDark.textContent = 'Undo';
+  undoBtnDark.onclick = () => undoAction();
+  darkActions.appendChild(undoBtnDark);
 
   let selectedPlayer = null;
   const playerHistory = {};
@@ -207,7 +203,7 @@
   }
 
   function isNegative(action) {
-    return ['Exclusion','Goal Let In','Cap Off'].includes(action);
+    return ['Exclusion','Goal Let In','Cap Off','Missed Shot','5 Meter Against'].includes(action);
   }
 
   function getMultiplier(actions) {
@@ -264,40 +260,12 @@
     });
   }
 
-  // Voice Recognition
-  let recognizing = false;
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.lang = 'en-US';
-  recognition.continuous = true;
-
-  recognition.onresult = event => {
-    const transcript = event.results[event.results.length - 1][0].transcript.trim();
-    console.log("Heard:", transcript);
-
-    const match = transcript.match(/(White|Dark) (\d{1,2}) (\w+)/i);
-    if (match) {
-      const team = match[1];
-      const player = parseInt(match[2]);
-      const actionWord = match[3].toLowerCase();
-      const action = actions.find(a => a.toLowerCase().includes(actionWord));
-
-      if (action) {
-        selectPlayer(team, player);
-        logAction(action);
-      }
-    }
-  };
-
-  function toggleMic() {
-    if (recognizing) {
-      recognition.stop();
-      recognizing = false;
-      document.querySelector('.mic-button').textContent = '🎙️ Start Voice';
-    } else {
-      recognition.start();
-      recognizing = true;
-      document.querySelector('.mic-button').textContent = '🛑 Stop Voice';
-    }
+  function undoAction() {
+    if (!selectedPlayer || !playerHistory[selectedPlayer] || playerHistory[selectedPlayer].length === 0) return;
+    playerHistory[selectedPlayer].pop();
+    // No need to re-fetch, but update score if needed
+    updateScore('White');
+    updateScore('Dark');
   }
 </script>
 
