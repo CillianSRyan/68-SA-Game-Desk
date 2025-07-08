@@ -14,7 +14,6 @@
       background-size: 300px;
       margin: 0;
       padding: 20px;
-      position: relative;
     }
     header {
       display: flex;
@@ -136,25 +135,49 @@
 
 <div class="team-section">
   <h2>White Team</h2>
-  <div class="player-grid">
-    ${[...Array(13)].map((_, i) => `<button onclick="selectPlayer('White', ${i+1})">White ${i+1}</button>`).join('')}
-  </div>
-  <div class="actions">
-    ${['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'].map(action => `<button onclick="logAction('${action}')">${action}</button>`).join('')}
-  </div>
+  <div class="player-grid" id="whitePlayers"></div>
+  <div class="actions" id="whiteActions"></div>
 </div>
 
 <div class="team-section">
   <h2>Dark Team</h2>
-  <div class="player-grid">
-    ${[...Array(13)].map((_, i) => `<button class='dark-player' onclick="selectPlayer('Dark', ${i+1})">Dark ${i+1}</button>`).join('')}
-  </div>
-  <div class="actions">
-    ${['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'].map(action => `<button onclick="logAction('${action}')">${action}</button>`).join('')}
-  </div>
+  <div class="player-grid" id="darkPlayers"></div>
+  <div class="actions" id="darkActions"></div>
 </div>
 
 <script>
+  const whitePlayers = document.getElementById('whitePlayers');
+  const darkPlayers = document.getElementById('darkPlayers');
+  const whiteActions = document.getElementById('whiteActions');
+  const darkActions = document.getElementById('darkActions');
+
+  const actions = ['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'];
+
+  for (let i = 1; i <= 13; i++) {
+    const whiteBtn = document.createElement('button');
+    whiteBtn.textContent = `White ${i}`;
+    whiteBtn.onclick = () => selectPlayer('White', i);
+    whitePlayers.appendChild(whiteBtn);
+
+    const darkBtn = document.createElement('button');
+    darkBtn.textContent = `Dark ${i}`;
+    darkBtn.className = 'dark-player';
+    darkBtn.onclick = () => selectPlayer('Dark', i);
+    darkPlayers.appendChild(darkBtn);
+  }
+
+  actions.forEach(action => {
+    const whiteActBtn = document.createElement('button');
+    whiteActBtn.textContent = action;
+    whiteActBtn.onclick = () => logAction(action);
+    whiteActions.appendChild(whiteActBtn);
+
+    const darkActBtn = document.createElement('button');
+    darkActBtn.textContent = action;
+    darkActBtn.onclick = () => logAction(action);
+    darkActions.appendChild(darkActBtn);
+  });
+
   let selectedPlayer = null;
   const playerHistory = {};
   const scores = { White: 0, Dark: 0 };
