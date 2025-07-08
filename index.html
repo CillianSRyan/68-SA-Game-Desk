@@ -105,6 +105,20 @@
       font-weight: bold;
       margin: 20px 0;
     }
+    .mic-button {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 10px 20px;
+      font-size: 14px;
+      background-color: #ff9900;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .mic-button:hover {
+      background-color: #cc7a00;
+    }
   </style>
 </head>
 <body>
@@ -119,7 +133,7 @@
   <input id="gameName" placeholder="Game name or date" />
 </div>
 
-<div style="text-align: center; margin-bottom: 20px;">
+<div style="text-align: center; margin-bottom: 10px;">
   <label for="quarterSelect">Current Quarter:</label>
   <select id="quarterSelect">
     <option value="Q1">Q1</option>
@@ -128,6 +142,8 @@
     <option value="Q4">Q4</option>
   </select>
 </div>
+
+<button class="mic-button" onclick="toggleMic()">🎙️ Start Voice</button>
 
 <div class="scoreboard">
   Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
@@ -246,6 +262,42 @@
         'Content-Type': 'application/json'
       }
     });
+  }
+
+  // Voice Recognition
+  let recognizing = false;
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'en-US';
+  recognition.continuous = true;
+
+  recognition.onresult = event => {
+    const transcript = event.results[event.results.length - 1][0].transcript.trim();
+    console.log("Heard:", transcript);
+
+    const match = transcript.match(/(White|Dark) (\d{1,2}) (\w+)/i);
+    if (match) {
+      const team = match[1];
+      const player = parseInt(match[2]);
+      const actionWord = match[3].toLowerCase();
+      const action = actions.find(a => a.toLowerCase().includes(actionWord));
+
+      if (action) {
+        selectPlayer(team, player);
+        logAction(action);
+      }
+    }
+  };
+
+  function toggleMic() {
+    if (recognizing) {
+      recognition.stop();
+      recognizing = false;
+      document.querySelector('.mic-button').textContent = '🎙️ Start Voice';
+    } else {
+      recognition.start();
+      recognizing = true;
+      document.querySelector('.mic-button').textContent = '🛑 Stop Voice';
+    }
   }
 </script>
 
