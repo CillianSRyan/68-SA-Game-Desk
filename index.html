@@ -37,7 +37,7 @@
       color: #222;
     }
     .team-section {
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
     .player-grid {
       display: grid;
@@ -57,6 +57,16 @@
     button:hover {
       background-color: #dceaff;
       border-color: #0077cc;
+    }
+    .dark-player {
+      background-color: #003366;
+      color: #fff;
+    }
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .actions button {
       background-color: #0066cc;
@@ -90,12 +100,11 @@
     label {
       font-weight: bold;
     }
-    #actionPanel {
-      margin-top: 30px;
-      padding: 20px;
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    .scoreboard {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -121,89 +130,99 @@
   </select>
 </div>
 
+<div class="scoreboard">
+  Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
+</div>
+
 <div class="team-section">
   <h2>White Team</h2>
   <div class="player-grid">
-    <button onclick="selectPlayer('White', 1)">White 1</button>
-    <button onclick="selectPlayer('White', 2)">White 2</button>
-    <button onclick="selectPlayer('White', 3)">White 3</button>
-    <button onclick="selectPlayer('White', 4)">White 4</button>
-    <button onclick="selectPlayer('White', 5)">White 5</button>
-    <button onclick="selectPlayer('White', 6)">White 6</button>
-    <button onclick="selectPlayer('White', 7)">White 7</button>
-    <button onclick="selectPlayer('White', 8)">White 8</button>
-    <button onclick="selectPlayer('White', 9)">White 9</button>
-    <button onclick="selectPlayer('White', 10)">White 10</button>
-    <button onclick="selectPlayer('White', 11)">White 11</button>
-    <button onclick="selectPlayer('White', 12)">White 12</button>
-    <button onclick="selectPlayer('White', 13)">White 13</button>
+    ${[...Array(13)].map((_, i) => `<button onclick="selectPlayer('White', ${i+1})">White ${i+1}</button>`).join('')}
+  </div>
+  <div class="actions">
+    ${['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'].map(action => `<button onclick="logAction('${action}')">${action}</button>`).join('')}
   </div>
 </div>
 
 <div class="team-section">
   <h2>Dark Team</h2>
   <div class="player-grid">
-    <button onclick="selectPlayer('Dark', 1)">Dark 1</button>
-    <button onclick="selectPlayer('Dark', 2)">Dark 2</button>
-    <button onclick="selectPlayer('Dark', 3)">Dark 3</button>
-    <button onclick="selectPlayer('Dark', 4)">Dark 4</button>
-    <button onclick="selectPlayer('Dark', 5)">Dark 5</button>
-    <button onclick="selectPlayer('Dark', 6)">Dark 6</button>
-    <button onclick="selectPlayer('Dark', 7)">Dark 7</button>
-    <button onclick="selectPlayer('Dark', 8)">Dark 8</button>
-    <button onclick="selectPlayer('Dark', 9)">Dark 9</button>
-    <button onclick="selectPlayer('Dark', 10)">Dark 10</button>
-    <button onclick="selectPlayer('Dark', 11)">Dark 11</button>
-    <button onclick="selectPlayer('Dark', 12)">Dark 12</button>
-    <button onclick="selectPlayer('Dark', 13)">Dark 13</button>
+    ${[...Array(13)].map((_, i) => `<button class='dark-player' onclick="selectPlayer('Dark', ${i+1})">Dark ${i+1}</button>`).join('')}
   </div>
-</div>
-
-<div id="actionPanel" style="display:none;">
-  <h2 id="actionTitle"></h2>
   <div class="actions">
-    <button onclick="logAction('Block')">Block (FP)</button>
-    <button onclick="logAction('Score')">Score</button>
-    <button onclick="logAction('Assist')">Assist</button>
-    <button onclick="logAction('Swim Off win')">Swim Off Win</button>
-    <button onclick="logAction('Save')">Save (GK)</button>
-    <button onclick="logAction('Exclusion')">Exclusion</button>
-    <button onclick="logAction('Goal Let In')">Goal Let In (GK)</button>
-    <button onclick="logAction('Cap Off')">Cap Off</button>
-    <button onclick="closeActionPanel()">Cancel</button>
+    ${['Block','Score','Assist','Swim Off win','Save','Exclusion','Goal Let In','Cap Off'].map(action => `<button onclick="logAction('${action}')">${action}</button>`).join('')}
   </div>
 </div>
 
 <script>
   let selectedPlayer = null;
+  const playerHistory = {};
+  const scores = { White: 0, Dark: 0 };
 
   function selectPlayer(team, number) {
     selectedPlayer = `${team} ${number}`;
-    document.getElementById('actionTitle').innerText = `Log Action for ${selectedPlayer}`;
-    document.getElementById('actionPanel').style.display = 'block';
+  }
+
+  function isPositive(action) {
+    return ['Block','Score','Assist','Swim Off win','Save'].includes(action);
+  }
+
+  function isNegative(action) {
+    return ['Exclusion','Goal Let In','Cap Off'].includes(action);
+  }
+
+  function getMultiplier(actions) {
+    let count = 0;
+    for (let i = actions.length - 1; i >= 0 && isPositive(actions[i]); i--) {
+      count++;
+    }
+    if (count >= 7) return 2;
+    if (count >= 5) return 1.5;
+    if (count >= 3) return 1.25;
+    return 1;
+  }
+
+  function updateScore(team) {
+    document.getElementById(`${team.toLowerCase()}Score`).innerText = scores[team];
   }
 
   function logAction(action) {
+    if (!selectedPlayer) return;
     const quarter = document.getElementById('quarterSelect').value;
     const game = document.getElementById('gameName').value || 'Default Game';
+    const [team] = selectedPlayer.split(' ');
+
+    if (!playerHistory[selectedPlayer]) playerHistory[selectedPlayer] = [];
+
+    let points = 0;
+    if (isPositive(action)) {
+      const mult = getMultiplier(playerHistory[selectedPlayer]);
+      points = 1 * mult;
+    } else if (isNegative(action)) {
+      points = -1;
+      playerHistory[selectedPlayer] = [];
+    }
+
+    if (action === 'Score') {
+      scores[team] += 1;
+      updateScore(team);
+    }
+
+    playerHistory[selectedPlayer].push(action);
+
     fetch('https://script.google.com/macros/s/AKfycbzrKpT1vY2SC230TqYRX7NSRcyIUzmHQK8EDVE4m-A/dev', {
       method: 'POST',
       body: JSON.stringify({
         game: game,
         quarter: quarter,
         player: selectedPlayer,
-        action: action
+        action: action,
+        points: points
       }),
       headers: {
         'Content-Type': 'application/json'
       }
     });
-    closeActionPanel();
-  }
-
-  function closeActionPanel() {
-    document.getElementById('actionPanel').style.display = 'none';
-    selectedPlayer = null;
   }
 </script>
 
