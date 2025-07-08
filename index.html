@@ -11,7 +11,7 @@
       background-image: url('watermark.png');
       background-repeat: no-repeat;
       background-position: bottom right;
-      background-size: 150px;
+      background-size: 80px;
       margin: 0;
       padding: 20px;
     }
@@ -130,6 +130,10 @@
 
 <div class="scoreboard">
   Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
+</div>
+
+<div style="text-align: center; margin-bottom: 20px;">
+  <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
 </div>
 
 <div class="team-section">
@@ -263,9 +267,36 @@
   function undoAction() {
     if (!selectedPlayer || !playerHistory[selectedPlayer] || playerHistory[selectedPlayer].length === 0) return;
     playerHistory[selectedPlayer].pop();
-    // No need to re-fetch, but update score if needed
     updateScore('White');
     updateScore('Dark');
+  }
+
+  function startVoiceRecognition() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.start();
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      const words = transcript.trim().toLowerCase().split(' ');
+      if (words.length >= 3) {
+        const team = words[0] === 'white' || words[0] === 'dark' ? words[0] : null;
+        const number = parseInt(words[1]);
+        const actionRaw = words.slice(2).join(' ');
+        const action = actions.find(a => a.toLowerCase() === actionRaw);
+        if (team && number && action) {
+          selectPlayer(team.charAt(0).toUpperCase() + team.slice(1), number);
+          logAction(action);
+        }
+      }
+    };
+
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+    };
   }
 </script>
 
