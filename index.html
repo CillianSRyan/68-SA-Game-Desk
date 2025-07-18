@@ -177,12 +177,19 @@
     }
 
     function sendToSheet(data) {
-      fetch('https://script.google.com/macros/s/AKfycbzyCjyQy2hgwyi1A5EXDkS3Q_bPn4OkAGl2sSQreQR8rURw8K205R8iOH6DjDxkJOT2Mg/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
+fetch('https://script.google.com/macros/s/AKfycbyNn4Lng-QI_X0dVdUjPVtd9cdAKlbORp__A340_yoTOxv9kaaM_OsoP3bkmn319ugiEQ/exec', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(data)
+})
+.then(response => response.text())
+.then(result => {
+  console.log('Success:', result);
+})
+.catch(error => {
+  console.error('Error:', error);
+});
+
     }
 
     let timerInterval;
