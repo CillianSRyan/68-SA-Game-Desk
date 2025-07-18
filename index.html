@@ -71,6 +71,33 @@
       font-size: 1.2em;
       margin-top: 10px;
     }
+    #toast {
+      visibility: hidden;
+      min-width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 10px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      font-size: 16px;
+    }
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 1s;
+    }
+    @keyframes fadein {
+      from {bottom: 20px; opacity: 0;}
+      to {bottom: 30px; opacity: 1;}
+    }
+    @keyframes fadeout {
+      from {bottom: 30px; opacity: 1;}
+      to {bottom: 20px; opacity: 0;}
+    }
   </style>
 </head>
 <body>
@@ -121,15 +148,54 @@
     <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
   </div>
 
+  <div id="toast"></div>
+
   <script>
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdfbwUw1ESq6i07NdeCdjU8cFKbgD2Knh8YJ_YT-V_tmYLNr_rNQpXpzsCL1hM2cHTtQ/exec";
 
-    const actionLog = []; // Store player actions for Google Sheets
+    const actionLog = [];
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.innerText = message;
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1500);
+    }
 
     function logAction(team, number, action, scoreChange) {
       const quarter = document.getElementById("quarterSelect").value;
       const timestamp = new Date().toISOString();
       actionLog.push({ team, number, action, scoreChange, quarter, timestamp });
+      showToast(`${team} ${number} - ${action} saved`);
+    }
+
+    function startVoiceRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.start();
+      recognition.onresult = function(event) {
+        const command = event.results[0][0].transcript.toLowerCase();
+        const match = command.match(/(white|dark) (\d{1,2}) (score|assist|block|save|swim off win|exclusion|goal let in|missed shot|cap off)/);
+        if (match) {
+          const team = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+          const number = parseInt(match[2]);
+          const action = match[3].replace(/\s+/g, ' ').trim();
+          const actionScores = {
+            "score": 1,
+            "assist": 1,
+            "block": 1,
+            "save": 1,
+            "swim off win": 1,
+            "exclusion": -1,
+            "goal let in": -1,
+            "missed shot": -1,
+            "cap off": -2
+          };
+          logAction(team, number, action, actionScores[action]);
+        } else {
+          showToast("Unrecognized command");
+        }
+      };
     }
 
     function endGame() {
