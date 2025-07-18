@@ -36,17 +36,8 @@
       font-weight: bold;
       margin: 20px 0;
     }
-    .team-select {
+    .team-select, .team-buttons, .action-buttons {
       text-align: center;
-      margin-bottom: 20px;
-    }
-    .team-select label {
-      margin-right: 10px;
-    }
-    .team-buttons {
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
       margin-bottom: 20px;
     }
     .team-buttons button {
@@ -60,12 +51,9 @@
       background-color: #003366;
       color: white;
     }
-    .action-buttons {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .action-buttons button {
-      margin: 3px;
+    .white-button {
+      background-color: #ffffff;
+      color: #003366;
     }
     .positive {
       background-color: #28a745;
@@ -149,19 +137,10 @@
     Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
   </div>
 
-  <div class="action-buttons">
-    <button class="positive" onclick="logAction('white', '11', 'score')">Score</button>
-    <button class="positive" onclick="logAction('white', '11', 'assist')">Assist</button>
-    <button class="positive" onclick="logAction('white', '11', 'block')">Block</button>
-    <button class="positive" onclick="logAction('white', '11', 'save')">Save</button>
-    <button class="positive" onclick="logAction('white', '11', 'swim off win')">Swim Off Win</button>
-    <button class="negative" onclick="logAction('white', '11', 'exclusion')">Exclusion</button>
-    <button class="negative" onclick="logAction('white', '11', 'goal let in')">Goal Let In</button>
-    <button class="negative" onclick="logAction('white', '11', 'missed shot')">Missed Shot</button>
-    <button class="negative" onclick="logAction('white', '11', '5 meter against')">5 Meter Against</button>
-    <button class="negative" onclick="logAction('white', '11', 'cap off')">Cap Off</button>
-    <button onclick="undoAction()">Undo</button>
-  </div>
+  <div class="team-buttons" id="whiteButtons"></div>
+  <div class="team-buttons" id="darkButtons"></div>
+
+  <div class="action-buttons" id="actionButtons"></div>
 
   <div style="text-align: center; margin-bottom: 20px;">
     <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
@@ -175,79 +154,37 @@
     const actionLog = [];
     const streaks = {};
 
-    const actions = {
-      'score': 1,
-      'assist': 1,
-      'block': 1,
-      'save': 1,
-      'swim off win': 1,
-      'exclusion': -1,
-      'goal let in': -1,
-      'missed shot': -1,
-      '5 meter against': -1,
-      'cap off': -2
-    };
+    const actions = ['score','assist','block','save','swim off win','exclusion','goal let in','missed shot','5 meter against','cap off'];
 
-    function calculateStreakMultiplier(playerKey) {
-      const streak = streaks[playerKey] || [];
-      const lastThree = streak.slice(-3);
-      const lastFive = streak.slice(-5);
-      const lastSeven = streak.slice(-7);
-      if (lastSeven.length === 7 && lastSeven.every(p => p > 0)) return 2;
-      if (lastFive.length === 5 && lastFive.every(p => p > 0)) return 1.5;
-      if (lastThree.length === 3 && lastThree.every(p => p > 0)) return 1.25;
-      return 1;
+    function createButtons(team) {
+      const container = document.getElementById(team + 'Buttons');
+      for (let i = 1; i <= 13; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = team.charAt(0).toUpperCase() + team.slice(1) + ' ' + i;
+        btn.className = team === 'white' ? 'white-button' : 'dark-button';
+        btn.onclick = () => showActions(team, i);
+        container.appendChild(btn);
+      }
     }
 
-    function logAction(team, number, action) {
-      const actionKey = action.toLowerCase();
-      const playerKey = `${team}-${number}`;
-      const basePoints = actions[actionKey] || 0;
-      if (!streaks[playerKey]) streaks[playerKey] = [];
-      if (basePoints < 0) streaks[playerKey] = [];
-      else streaks[playerKey].push(basePoints);
-      const multiplier = calculateStreakMultiplier(playerKey);
-      const points = basePoints > 0 ? basePoints * multiplier : basePoints;
-      if (team === 'white' && actionKey === 'score') whiteScore++;
-      if (team === 'dark' && actionKey === 'score') darkScore++;
-      whiteScoreElement.textContent = whiteScore;
-      darkScoreElement.textContent = darkScore;
-      actionLog.push({ team, number, action, points });
-      fetch('https://script.google.com/macros/s/AKfycbzrKpT1vY2SC230TqYRX7NSRcyIUzmHQK8EDVE4m-A/dev', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team, number, action, points, game: document.getElementById('gameName').value, quarter: document.getElementById('quarterSelect').value, timestamp: new Date().toISOString() })
+    function showActions(team, number) {
+      const container = document.getElementById('actionButtons');
+      container.innerHTML = '';
+      actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.innerText = action;
+        btn.className = (['score','assist','block','save','swim off win'].includes(action)) ? 'positive' : 'negative';
+        btn.onclick = () => logAction(team, number, action);
+        container.appendChild(btn);
       });
+      const undoBtn = document.createElement('button');
+      undoBtn.innerText = 'Undo';
+      undoBtn.onclick = undoAction;
+      container.appendChild(undoBtn);
     }
 
-    function undoAction() {
-      const last = actionLog.pop();
-      if (!last) return;
-      if (last.team === 'white' && last.action.toLowerCase() === 'score') whiteScore--;
-      if (last.team === 'dark' && last.action.toLowerCase() === 'score') darkScore--;
-      whiteScoreElement.textContent = whiteScore;
-      darkScoreElement.textContent = darkScore;
-    }
-
-    function startVoiceRecognition() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      recognition.start();
-      recognition.onresult = function(event) {
-        const command = event.results[0][0].transcript.toLowerCase();
-        const match = command.match(/(white|dark) (\d{1,2}) (score|assist|block|save|swim off win|exclusion|goal let in|missed shot|5 meter against|cap off)/);
-        if (match) {
-          const [_, team, number, action] = match;
-          logAction(team, number, action);
-        }
-      };
-      recognition.onerror = function(event) {
-        alert('Voice Error: ' + event.error);
-      };
-    }
+    createButtons('white');
+    createButtons('dark');
   </script>
 </body>
 </html>
