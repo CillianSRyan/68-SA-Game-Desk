@@ -122,156 +122,41 @@
   </div>
 
   <script>
-    const whiteScoreElement = document.getElementById('whiteScore');
-    const darkScoreElement = document.getElementById('darkScore');
-    let whiteScore = 0;
-    let darkScore = 0;
-    const actionLog = [];
-    const streaks = {}; // e.g., streaks['white-5'] = ["score", "assist", ...]
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdfbwUw1ESq6i07NdeCdjU8cFKbgD2Knh8YJ_YT-V_tmYLNr_rNQpXpzsCL1hM2cHTtQ/exec";
 
-    let gameActive = false;
-    let timerRunning = false;
-    let timerInterval;
-    let secondsElapsed = 0;
+    const actionLog = []; // Store player actions for Google Sheets
 
-    const actions = ['score','assist','block','save','swim off win','exclusion','goal let in','missed shot','5 meter against','cap off'];
-    const teams = ["Tigers","Lions","Leopards","Jaguars","Caracals","Barbells","Gryphons","Dragons","Centaurs","Bullcats","Kestrels","Eagles","Condors","Falcons","Ospreys","Hawks","Harriers","Kites","Vultures"];
-
-    function populateTeamDropdowns() {
-      const whiteSelect = document.getElementById('whiteTeamSelect');
-      const darkSelect = document.getElementById('darkTeamSelect');
-      teams.forEach(team => {
-        let opt1 = document.createElement('option');
-        let opt2 = document.createElement('option');
-        opt1.value = opt1.text = team;
-        opt2.value = opt2.text = team;
-        whiteSelect.add(opt1);
-        darkSelect.add(opt2);
-      });
-    }
-
-    function createButtons(team) {
-      const buttonContainer = document.getElementById(team + 'Buttons');
-      const actionContainer = document.getElementById(team + 'Actions');
-      for (let i = 1; i <= 13; i++) {
-        const btn = document.createElement('button');
-        btn.innerText = team.charAt(0).toUpperCase() + team.slice(1) + ' ' + i;
-        btn.className = team === 'white' ? 'white-button' : 'dark-button';
-        buttonContainer.appendChild(btn);
-      }
-      actions.forEach(action => {
-        const btn = document.createElement('button');
-        btn.innerText = action;
-        btn.className = (['score','assist','block','save','swim off win'].includes(action)) ? 'positive' : 'negative';
-        btn.onclick = () => {
-          const number = prompt(`Enter player number for ${team}`);
-          if (number && gameActive) logAction(team, number, action);
-        };
-        actionContainer.appendChild(btn);
-      });
-      const undoBtn = document.createElement('button');
-      undoBtn.innerText = 'Undo';
-      undoBtn.onclick = () => {
-        const number = prompt(`Undo: Enter player number for ${team}`);
-        const action = prompt(`Undo: Enter action to undo for ${team} ${number}`);
-        if (number && action) undoAction(team, number, action);
-      };
-      actionContainer.appendChild(undoBtn);
-    }
-
-    function logAction(team, number, action) {
-      const key = `${team}-${number}`;
-      if (!streaks[key]) streaks[key] = [];
-
-      let scoreChange = 0;
-      const isPositive = ['score','assist','block','save','swim off win'].includes(action);
-      const isNegative = ['exclusion','goal let in','missed shot','5 meter against'].includes(action);
-      if (isPositive) {
-        streaks[key].push(action);
-        if (streaks[key].length >= 7) scoreChange = 2;
-        else if (streaks[key].length >= 5) scoreChange = 1.5;
-        else if (streaks[key].length >= 3) scoreChange = 1.25;
-        else scoreChange = 1;
-      } else {
-        streaks[key] = [];
-        scoreChange = (action === 'cap off') ? -2 : -1;
-      }
-
-      actionLog.push({ team, number, action, scoreChange });
-
-      if (action === 'score') {
-        if (team === 'white') whiteScore++;
-        else darkScore++;
-        whiteScoreElement.innerText = whiteScore;
-        darkScoreElement.innerText = darkScore;
-      }
-    }
-
-    function undoAction(team, number, action) {
-      const idx = actionLog.findLastIndex(e => e.team === team && e.number === number && e.action === action);
-      if (idx === -1) return;
-
-      const removed = actionLog.splice(idx, 1)[0];
-
-      const key = `${team}-${number}`;
-      if (['score','assist','block','save','swim off win'].includes(action)) {
-        const s = streaks[key] || [];
-        const index = s.lastIndexOf(action);
-        if (index !== -1) s.splice(index, 1);
-      }
-
-      if (action === 'score') {
-        if (team === 'white') whiteScore--;
-        else darkScore--;
-        whiteScoreElement.innerText = whiteScore;
-        darkScoreElement.innerText = darkScore;
-      }
-    }
-
-    function startGame() {
-      gameActive = true;
-      timerRunning = true;
-      document.getElementById('startGameBtn').disabled = true;
-      document.getElementById('pauseGameBtn').disabled = false;
-      document.getElementById('endGameBtn').disabled = false;
-      timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    function pauseGame() {
-      timerRunning = !timerRunning;
-      if (timerRunning) {
-        timerInterval = setInterval(updateTimer, 1000);
-        document.getElementById('pauseGameBtn').innerText = 'Pause Game';
-      } else {
-        clearInterval(timerInterval);
-        document.getElementById('pauseGameBtn').innerText = 'Resume Game';
-      }
+    function logAction(team, number, action, scoreChange) {
+      const quarter = document.getElementById("quarterSelect").value;
+      const timestamp = new Date().toISOString();
+      actionLog.push({ team, number, action, scoreChange, quarter, timestamp });
     }
 
     function endGame() {
-      gameActive = false;
-      timerRunning = false;
-      clearInterval(timerInterval);
-      document.getElementById('startGameBtn').disabled = false;
-      document.getElementById('pauseGameBtn').disabled = true;
-      document.getElementById('endGameBtn').disabled = true;
-    }
+      const gameName = document.getElementById("gameName").value.trim();
+      const whiteTeam = document.getElementById("whiteTeamSelect").value;
+      const darkTeam = document.getElementById("darkTeamSelect").value;
+      const quarter = document.getElementById("quarterSelect").value;
 
-    function updateTimer() {
-      if (!timerRunning) return;
-      secondsElapsed++;
-      const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-      const seconds = String(secondsElapsed % 60).padStart(2, '0');
-      document.getElementById('gameTimer').innerText = `${minutes}:${seconds}`;
-    }
+      const payload = {
+        gameName,
+        whiteTeam,
+        darkTeam,
+        quarter,
+        actionLog
+      };
 
-    function startVoiceRecognition() {
-      // Voice logic placeholder
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      .then((res) => res.text())
+      .then((response) => alert(response))
+      .catch((error) => alert("Error logging game: " + error));
     }
-
-    populateTeamDropdowns();
-    createButtons('white');
-    createButtons('dark');
   </script>
 </body>
 </html>
