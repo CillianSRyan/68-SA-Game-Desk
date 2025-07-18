@@ -100,7 +100,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="renderButtons()">
   <header>
     <img src="logo.png" alt="Logo" />
     <h1>68SA BCWLT3 Game Desk</h1>
@@ -144,6 +144,10 @@
   <div class="team-buttons" id="darkButtons"></div>
   <div class="action-buttons" id="darkActions"></div>
 
+  <div style="text-align: center;">
+    <button onclick="undoLastAction()">Undo</button>
+  </div>
+
   <div style="text-align: center; margin-bottom: 20px;">
     <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
   </div>
@@ -151,77 +155,101 @@
   <div id="toast"></div>
 
   <script>
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdfbwUw1ESq6i07NdeCdjU8cFKbgD2Knh8YJ_YT-V_tmYLNr_rNQpXpzsCL1hM2cHTtQ/exec";
+    const POSITIVE_ACTIONS = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)"];
+    const NEGATIVE_ACTIONS = ["Exclusion", "Goal Let In (GK)", "Missed Shot (FP)"];
+    const STRONG_NEGATIVE_ACTIONS = ["Cap Off"];
+    const TEAMS = ["White", "Dark"];
 
-    const actionLog = [];
+    let selectedCap = { White: null, Dark: null };
+    let actionHistory = { White: {}, Dark: {} };
+    let lastAction = null;
+    let gameStarted = false;
 
-    function showToast(message) {
+    function showToast(msg) {
       const toast = document.getElementById("toast");
-      toast.innerText = message;
+      toast.textContent = msg;
       toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1500);
+      setTimeout(() => toast.className = toast.className.replace("show", ""), 1500);
     }
 
-    function logAction(team, number, action, scoreChange) {
-      const quarter = document.getElementById("quarterSelect").value;
-      const timestamp = new Date().toISOString();
-      actionLog.push({ team, number, action, scoreChange, quarter, timestamp });
-      showToast(`${team} ${number} - ${action} saved`);
-    }
+    function renderButtons() {
+      TEAMS.forEach(team => {
+        const buttonContainer = document.getElementById(`${team.toLowerCase()}Buttons`);
+        const actionContainer = document.getElementById(`${team.toLowerCase()}Actions`);
 
-    function startVoiceRecognition() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'en-US';
-      recognition.start();
-      recognition.onresult = function(event) {
-        const command = event.results[0][0].transcript.toLowerCase();
-        const match = command.match(/(white|dark) (\d{1,2}) (score|assist|block|save|swim off win|exclusion|goal let in|missed shot|cap off)/);
-        if (match) {
-          const team = match[1].charAt(0).toUpperCase() + match[1].slice(1);
-          const number = parseInt(match[2]);
-          const action = match[3].replace(/\s+/g, ' ').trim();
-          const actionScores = {
-            "score": 1,
-            "assist": 1,
-            "block": 1,
-            "save": 1,
-            "swim off win": 1,
-            "exclusion": -1,
-            "goal let in": -1,
-            "missed shot": -1,
-            "cap off": -2
-          };
-          logAction(team, number, action, actionScores[action]);
-        } else {
-          showToast("Unrecognized command");
+        for (let i = 1; i <= 13; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = `${team} ${i}`;
+          btn.className = team === "White" ? "white-button" : "dark-button";
+          btn.onclick = () => selectedCap[team] = i;
+          buttonContainer.appendChild(btn);
         }
-      };
+
+        POSITIVE_ACTIONS.concat(NEGATIVE_ACTIONS, STRONG_NEGATIVE_ACTIONS).forEach(action => {
+          const btn = document.createElement("button");
+          btn.textContent = action;
+          btn.className = POSITIVE_ACTIONS.includes(action) ? "positive" : "negative";
+          btn.onclick = () => applyAction(team, action);
+          actionContainer.appendChild(btn);
+        });
+      });
     }
 
+    function applyAction(team, action) {
+      if (!gameStarted) return showToast("Game not started");
+      const number = selectedCap[team];
+      if (!number) return showToast("Select a cap number first");
+
+      const scoreValue = POSITIVE_ACTIONS.includes(action) ? 1 : STRONG_NEGATIVE_ACTIONS.includes(action) ? -2 : -1;
+
+      if (!actionHistory[team][number]) actionHistory[team][number] = [];
+      actionHistory[team][number].push(action);
+
+      const streak = actionHistory[team][number].slice().reverse().reduce((acc, act) => POSITIVE_ACTIONS.includes(act) ? acc + 1 : 0, 0);
+
+      let multiplier = 1;
+      if (streak >= 7) multiplier = 2;
+      else if (streak >= 5) multiplier = 1.5;
+      else if (streak >= 3) multiplier = 1.25;
+
+      const finalScore = POSITIVE_ACTIONS.includes(action) ? scoreValue * multiplier : scoreValue;
+      document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent = parseFloat(document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent) + finalScore;
+
+      lastAction = { team, number, action, scoreDelta: finalScore };
+      showToast(`${team} ${number} - ${action} (${finalScore > 0 ? '+' : ''}${finalScore})`);
+    }
+
+    function undoLastAction() {
+      if (!lastAction) return showToast("No action to undo");
+      const { team, number, action, scoreDelta } = lastAction;
+      if (!actionHistory[team][number]) return;
+
+      actionHistory[team][number].pop();
+      document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent = parseFloat(document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent) - scoreDelta;
+
+      showToast(`Undid ${team} ${number} - ${action}`);
+      lastAction = null;
+    }
+
+    function startGame() {
+      gameStarted = true;
+      document.getElementById("startGameBtn").disabled = true;
+      document.getElementById("pauseGameBtn").disabled = false;
+      document.getElementById("endGameBtn").disabled = false;
+      showToast("Game started");
+    }
+    function pauseGame() {
+      gameStarted = false;
+      document.getElementById("startGameBtn").disabled = false;
+      document.getElementById("pauseGameBtn").disabled = true;
+      showToast("Game paused");
+    }
     function endGame() {
-      const gameName = document.getElementById("gameName").value.trim();
-      const whiteTeam = document.getElementById("whiteTeamSelect").value;
-      const darkTeam = document.getElementById("darkTeamSelect").value;
-      const quarter = document.getElementById("quarterSelect").value;
-
-      const payload = {
-        gameName,
-        whiteTeam,
-        darkTeam,
-        quarter,
-        actionLog
-      };
-
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      .then((res) => res.text())
-      .then((response) => alert(response))
-      .catch((error) => alert("Error logging game: " + error));
+      gameStarted = false;
+      document.getElementById("startGameBtn").disabled = false;
+      document.getElementById("pauseGameBtn").disabled = true;
+      document.getElementById("endGameBtn").disabled = true;
+      showToast("Game ended");
     }
   </script>
 </body>
