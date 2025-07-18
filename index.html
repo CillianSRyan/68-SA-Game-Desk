@@ -192,24 +192,38 @@
     function renderButtons() {
       const whiteButtons = document.getElementById("whiteButtons");
       const whiteActions = document.getElementById("whiteActions");
+      const darkButtons = document.getElementById("darkButtons");
+      const darkActions = document.getElementById("darkActions");
 
       for (let i = 1; i <= 13; i++) {
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.className = "white-button";
-        btn.onclick = () => selectCap(i, 'white');
-        whiteButtons.appendChild(btn);
+        const whiteBtn = document.createElement("button");
+        whiteBtn.textContent = i;
+        whiteBtn.className = "white-button";
+        whiteBtn.onclick = () => selectCap(i, 'white');
+        whiteButtons.appendChild(whiteBtn);
+
+        const darkBtn = document.createElement("button");
+        darkBtn.textContent = i;
+        darkBtn.className = "dark-button";
+        darkBtn.onclick = () => selectCap(i, 'dark');
+        darkButtons.appendChild(darkBtn);
       }
 
       const actions = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)", "Exclusion", "Goal Let In (GK)", "Missed Shot (FP)", "Cap Off"];
       const types = ["positive", "positive", "positive", "positive", "positive", "negative", "negative", "negative", "negative"];
 
       actions.forEach((action, index) => {
-        const btn = document.createElement("button");
-        btn.textContent = action;
-        btn.className = types[index];
-        btn.onclick = () => logAction(action);
-        whiteActions.appendChild(btn);
+        const btnWhite = document.createElement("button");
+        btnWhite.textContent = action;
+        btnWhite.className = types[index];
+        btnWhite.onclick = () => logAction(action);
+        whiteActions.appendChild(btnWhite);
+
+        const btnDark = document.createElement("button");
+        btnDark.textContent = action;
+        btnDark.className = types[index];
+        btnDark.onclick = () => logAction(action);
+        darkActions.appendChild(btnDark);
       });
     }
 
