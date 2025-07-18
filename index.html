@@ -112,8 +112,7 @@
   </div>
 
   <div style="text-align: center; margin-bottom: 10px;">
-    <button id="startGameBtn" onclick="startGame()">Start Game</button>
-    <button id="pauseGameBtn" onclick="pauseGame()" disabled>Pause Game</button>
+    <button id="startGameBtn" onclick="toggleGameState()">Start Game</button>
     <button id="endGameBtn" onclick="endGame()" disabled>End Game</button>
   </div>
 
@@ -155,101 +154,70 @@
   <div id="toast"></div>
 
   <script>
-    const POSITIVE_ACTIONS = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)"];
-    const NEGATIVE_ACTIONS = ["Exclusion", "Goal Let In (GK)", "Missed Shot (FP)"];
-    const STRONG_NEGATIVE_ACTIONS = ["Cap Off"];
-    const TEAMS = ["White", "Dark"];
+    let timerInterval;
+    let secondsElapsed = 0;
+    let gameRunning = false;
 
-    let selectedCap = { White: null, Dark: null };
-    let actionHistory = { White: {}, Dark: {} };
-    let lastAction = null;
-    let gameStarted = false;
+    function toggleGameState() {
+      gameRunning = !gameRunning;
+      const startBtn = document.getElementById("startGameBtn");
+      const endBtn = document.getElementById("endGameBtn");
+      startBtn.textContent = gameRunning ? "Pause Game" : "Start Game";
+      endBtn.disabled = !gameRunning;
 
-    function showToast(msg) {
-      const toast = document.getElementById("toast");
-      toast.textContent = msg;
-      toast.className = "show";
-      setTimeout(() => toast.className = toast.className.replace("show", ""), 1500);
+      if (gameRunning) {
+        timerInterval = setInterval(() => {
+          secondsElapsed++;
+          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+          const secs = String(secondsElapsed % 60).padStart(2, '0');
+          document.getElementById("gameTimer").textContent = `${mins}:${secs}`;
+        }, 1000);
+        showToast("Game started");
+      } else {
+        clearInterval(timerInterval);
+        showToast("Game paused");
+      }
+    }
+
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+      document.getElementById("startGameBtn").textContent = "Start Game";
+      document.getElementById("endGameBtn").disabled = true;
+      secondsElapsed = 0;
+      document.getElementById("gameTimer").textContent = "00:00";
+      showToast("Game ended");
     }
 
     function renderButtons() {
-      TEAMS.forEach(team => {
-        const buttonContainer = document.getElementById(`${team.toLowerCase()}Buttons`);
-        const actionContainer = document.getElementById(`${team.toLowerCase()}Actions`);
+      const whiteButtons = document.getElementById("whiteButtons");
+      const whiteActions = document.getElementById("whiteActions");
 
-        for (let i = 1; i <= 13; i++) {
-          const btn = document.createElement("button");
-          btn.textContent = `${team} ${i}`;
-          btn.className = team === "White" ? "white-button" : "dark-button";
-          btn.onclick = () => selectedCap[team] = i;
-          buttonContainer.appendChild(btn);
-        }
+      for (let i = 1; i <= 13; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = "white-button";
+        btn.onclick = () => selectCap(i, 'white');
+        whiteButtons.appendChild(btn);
+      }
 
-        POSITIVE_ACTIONS.concat(NEGATIVE_ACTIONS, STRONG_NEGATIVE_ACTIONS).forEach(action => {
-          const btn = document.createElement("button");
-          btn.textContent = action;
-          btn.className = POSITIVE_ACTIONS.includes(action) ? "positive" : "negative";
-          btn.onclick = () => applyAction(team, action);
-          actionContainer.appendChild(btn);
-        });
+      const actions = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)", "Exclusion", "Goal Let In (GK)", "Missed Shot (FP)", "Cap Off"];
+      const types = ["positive", "positive", "positive", "positive", "positive", "negative", "negative", "negative", "negative"];
+
+      actions.forEach((action, index) => {
+        const btn = document.createElement("button");
+        btn.textContent = action;
+        btn.className = types[index];
+        btn.onclick = () => logAction(action);
+        whiteActions.appendChild(btn);
       });
     }
 
-    function applyAction(team, action) {
-      if (!gameStarted) return showToast("Game not started");
-      const number = selectedCap[team];
-      if (!number) return showToast("Select a cap number first");
-
-      const scoreValue = POSITIVE_ACTIONS.includes(action) ? 1 : STRONG_NEGATIVE_ACTIONS.includes(action) ? -2 : -1;
-
-      if (!actionHistory[team][number]) actionHistory[team][number] = [];
-      actionHistory[team][number].push(action);
-
-      const streak = actionHistory[team][number].slice().reverse().reduce((acc, act) => POSITIVE_ACTIONS.includes(act) ? acc + 1 : 0, 0);
-
-      let multiplier = 1;
-      if (streak >= 7) multiplier = 2;
-      else if (streak >= 5) multiplier = 1.5;
-      else if (streak >= 3) multiplier = 1.25;
-
-      const finalScore = POSITIVE_ACTIONS.includes(action) ? scoreValue * multiplier : scoreValue;
-      document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent = parseFloat(document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent) + finalScore;
-
-      lastAction = { team, number, action, scoreDelta: finalScore };
-      showToast(`${team} ${number} - ${action} (${finalScore > 0 ? '+' : ''}${finalScore})`);
-    }
-
-    function undoLastAction() {
-      if (!lastAction) return showToast("No action to undo");
-      const { team, number, action, scoreDelta } = lastAction;
-      if (!actionHistory[team][number]) return;
-
-      actionHistory[team][number].pop();
-      document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent = parseFloat(document.getElementById(team === "White" ? "whiteScore" : "darkScore").textContent) - scoreDelta;
-
-      showToast(`Undid ${team} ${number} - ${action}`);
-      lastAction = null;
-    }
-
-    function startGame() {
-      gameStarted = true;
-      document.getElementById("startGameBtn").disabled = true;
-      document.getElementById("pauseGameBtn").disabled = false;
-      document.getElementById("endGameBtn").disabled = false;
-      showToast("Game started");
-    }
-    function pauseGame() {
-      gameStarted = false;
-      document.getElementById("startGameBtn").disabled = false;
-      document.getElementById("pauseGameBtn").disabled = true;
-      showToast("Game paused");
-    }
-    function endGame() {
-      gameStarted = false;
-      document.getElementById("startGameBtn").disabled = false;
-      document.getElementById("pauseGameBtn").disabled = true;
-      document.getElementById("endGameBtn").disabled = true;
-      showToast("Game ended");
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1500);
     }
   </script>
 </body>
