@@ -8,10 +8,6 @@
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #d5e6f6;
-      background-image: url('watermark.png');
-      background-repeat: no-repeat;
-      background-position: bottom right;
-      background-size: 80px;
       margin: 0;
       padding: 20px;
     }
@@ -30,48 +26,23 @@
       color: #003366;
       margin: 0;
     }
-    .scoreboard {
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-    .team-select, .team-buttons, .action-buttons {
+    .scoreboard, .team-select, .team-buttons, .action-buttons, .game-controls {
       text-align: center;
       margin-bottom: 20px;
     }
-    .team-buttons button {
-      padding: 10px;
+    .team-buttons button, .action-buttons button, .game-controls button {
       margin: 5px;
+      padding: 10px 15px;
       border: none;
       border-radius: 5px;
+      font-size: 16px;
       cursor: pointer;
     }
-    .dark-button {
-      background-color: #003366;
-      color: white;
-    }
-    .white-button {
-      background-color: #ffffff;
-      color: #003366;
-    }
-    .positive {
-      background-color: #28a745;
-      color: white;
-    }
-    .negative {
-      background-color: #dc3545;
-      color: white;
-    }
-    .action-buttons button {
-      margin: 3px;
-      padding: 8px 12px;
-    }
-    #gameTimer {
-      font-size: 1.2em;
-      margin-top: 10px;
-    }
-    #toast {
+    .white-button { background-color: #fff; color: #003366; border: 2px solid #003366; }
+    .dark-button { background-color: #003366; color: white; }
+    .positive { background-color: #28a745; color: white; }
+    .negative { background-color: #dc3545; color: white; }
+    .toast {
       visibility: hidden;
       min-width: 200px;
       background-color: #333;
@@ -86,56 +57,35 @@
       transform: translateX(-50%);
       font-size: 16px;
     }
-    #toast.show {
-      visibility: visible;
-      animation: fadein 0.5s, fadeout 0.5s 1s;
-    }
-    @keyframes fadein {
-      from {bottom: 20px; opacity: 0;}
-      to {bottom: 30px; opacity: 1;}
-    }
-    @keyframes fadeout {
-      from {bottom: 30px; opacity: 1;}
-      to {bottom: 20px; opacity: 0;}
-    }
+    .show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 1s; }
+    @keyframes fadein { from {opacity: 0;} to {opacity: 1;} }
+    @keyframes fadeout { from {opacity: 1;} to {opacity: 0;} }
   </style>
 </head>
-<body onload="renderButtons()">
+<body>
   <header>
-    <img src="logo.png" alt="Logo" />
+    <img src="logo.png" alt="Logo">
     <h1>68SA BCWLT3 Game Desk</h1>
   </header>
 
-  <div style="text-align: center; margin-bottom: 10px;">
-    <label for="gameName">Game Name:</label>
-    <input id="gameName" placeholder="Game name or date" />
-  </div>
-
-  <div style="text-align: center; margin-bottom: 10px;">
-    <button id="startGameBtn" onclick="toggleGameState()">Start Game</button>
-    <button id="endGameBtn" onclick="endGame()" disabled>End Game</button>
-  </div>
-
-  <div style="text-align: center; margin-bottom: 20px;">
-    <label for="quarterSelect">Current Quarter:</label>
-    <select id="quarterSelect">
-      <option value="Q1">Q1</option>
-      <option value="Q2">Q2</option>
-      <option value="Q3">Q3</option>
-      <option value="Q4">Q4</option>
-    </select>
-  </div>
-
-  <div class="team-select">
-    <label for="whiteTeamSelect">White Team:</label>
-    <select id="whiteTeamSelect"></select>
-    <label for="darkTeamSelect">Dark Team:</label>
-    <select id="darkTeamSelect"></select>
-  </div>
-
-  <div class="scoreboard">
-    Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
-    <div id="gameTimer">00:00</div>
+  <div class="game-controls">
+    <label>Game Name: <input id="gameName" placeholder="Game name or date"></label><br>
+    <button onclick="startGame()">Start Game</button>
+    <button onclick="pauseGame()">Pause Game</button>
+    <button onclick="endGame()">End Game</button><br>
+    <label>Current Quarter:
+      <select id="quarter">
+        <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+      </select>
+    </label>
+    <div class="team-select">
+      <label>White Team: <select id="whiteTeamSelect"></select></label>
+      <label>Dark Team: <select id="darkTeamSelect"></select></label>
+    </div>
+    <div class="scoreboard">
+      Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
+      <div id="gameTimer">00:00</div>
+    </div>
   </div>
 
   <div class="team-buttons" id="whiteButtons"></div>
@@ -143,96 +93,124 @@
   <div class="team-buttons" id="darkButtons"></div>
   <div class="action-buttons" id="darkActions"></div>
 
-  <div style="text-align: center;">
+  <div class="game-controls">
     <button onclick="undoLastAction()">Undo</button>
-  </div>
-
-  <div style="text-align: center; margin-bottom: 20px;">
     <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" class="toast"></div>
 
   <script>
-    let timerInterval;
-    let secondsElapsed = 0;
-    let gameRunning = false;
+    const teams = ["Tigers", "Lions", "Jaguars", "Taipans", "Cobras", "Vultures", "Eagles", "Falcons", "Kestrels", "Hawks", "Pythons", "Adders", "Condors", "Kites", "Ospreys", "Harriers", "Caracals", "Leopards"];
+    let currentCap = null;
+    let currentTeam = null;
+    let timer;
+    let elapsedSeconds = 0;
+    let whiteScore = 0, darkScore = 0;
 
-    function toggleGameState() {
-      gameRunning = !gameRunning;
-      const startBtn = document.getElementById("startGameBtn");
-      const endBtn = document.getElementById("endGameBtn");
-      startBtn.textContent = gameRunning ? "Pause Game" : "Start Game";
-      endBtn.disabled = !gameRunning;
-
-      if (gameRunning) {
-        timerInterval = setInterval(() => {
-          secondsElapsed++;
-          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-          const secs = String(secondsElapsed % 60).padStart(2, '0');
-          document.getElementById("gameTimer").textContent = `${mins}:${secs}`;
-        }, 1000);
-        showToast("Game started");
-      } else {
-        clearInterval(timerInterval);
-        showToast("Game paused");
-      }
-    }
-
-    function endGame() {
-      gameRunning = false;
-      clearInterval(timerInterval);
-      document.getElementById("startGameBtn").textContent = "Start Game";
-      document.getElementById("endGameBtn").disabled = true;
-      secondsElapsed = 0;
-      document.getElementById("gameTimer").textContent = "00:00";
-      showToast("Game ended");
-    }
-
-    function renderButtons() {
-      const whiteButtons = document.getElementById("whiteButtons");
-      const whiteActions = document.getElementById("whiteActions");
-      const darkButtons = document.getElementById("darkButtons");
-      const darkActions = document.getElementById("darkActions");
-
-      for (let i = 1; i <= 13; i++) {
-        const whiteBtn = document.createElement("button");
-        whiteBtn.textContent = i;
-        whiteBtn.className = "white-button";
-        whiteBtn.onclick = () => selectCap(i, 'white');
-        whiteButtons.appendChild(whiteBtn);
-
-        const darkBtn = document.createElement("button");
-        darkBtn.textContent = i;
-        darkBtn.className = "dark-button";
-        darkBtn.onclick = () => selectCap(i, 'dark');
-        darkButtons.appendChild(darkBtn);
-      }
-
-      const actions = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)", "Exclusion", "Goal Let In (GK)", "Missed Shot (FP)", "Cap Off"];
-      const types = ["positive", "positive", "positive", "positive", "positive", "negative", "negative", "negative", "negative"];
-
-      actions.forEach((action, index) => {
-        const btnWhite = document.createElement("button");
-        btnWhite.textContent = action;
-        btnWhite.className = types[index];
-        btnWhite.onclick = () => logAction(action);
-        whiteActions.appendChild(btnWhite);
-
-        const btnDark = document.createElement("button");
-        btnDark.textContent = action;
-        btnDark.className = types[index];
-        btnDark.onclick = () => logAction(action);
-        darkActions.appendChild(btnDark);
+    function populateTeams() {
+      const whiteSelect = document.getElementById('whiteTeamSelect');
+      const darkSelect = document.getElementById('darkTeamSelect');
+      teams.forEach(team => {
+        whiteSelect.innerHTML += `<option value="${team}">${team}</option>`;
+        darkSelect.innerHTML += `<option value="${team}">${team}</option>`;
       });
     }
 
-    function showToast(message) {
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1000);
+    function updateTimerDisplay() {
+      const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+      const secs = String(elapsedSeconds % 60).padStart(2, '0');
+      document.getElementById("gameTimer").textContent = `${mins}:${secs}`;
     }
+
+    function startGame() {
+      if (!timer) timer = setInterval(() => { elapsedSeconds++; updateTimerDisplay(); }, 1000);
+    }
+
+    function pauseGame() {
+      clearInterval(timer);
+      timer = null;
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      timer = null;
+      elapsedSeconds = 0;
+      updateTimerDisplay();
+    }
+
+    function renderCapButtons() {
+      const whiteCapDiv = document.getElementById("whiteButtons");
+      const darkCapDiv = document.getElementById("darkButtons");
+      for (let i = 1; i <= 13; i++) {
+        whiteCapDiv.innerHTML += `<button class='white-button' onclick="selectCap(${i}, 'white')">White ${i}</button>`;
+        darkCapDiv.innerHTML += `<button class='dark-button' onclick="selectCap(${i}, 'dark')">Dark ${i}</button>`;
+      }
+    }
+
+    function renderActionButtons() {
+      const actions = [
+        { label: "Score", value: 1 },
+        { label: "Assist", value: 1 },
+        { label: "Block FP", value: 1 },
+        { label: "Swim Off win", value: 1 },
+        { label: "Save (GK)", value: 1 },
+        { label: "Exclusion", value: -1 },
+        { label: "Goal Let In (GK)", value: -1 },
+        { label: "Missed Shot (FP)", value: -1 },
+        { label: "Cap Off", value: -2 }
+      ];
+
+      const whiteActionDiv = document.getElementById("whiteActions");
+      const darkActionDiv = document.getElementById("darkActions");
+
+      actions.forEach(action => {
+        const btnW = document.createElement("button");
+        btnW.textContent = action.label;
+        btnW.className = action.value > 0 ? 'positive' : 'negative';
+        btnW.onclick = () => recordAction('white', currentCap, action.label, action.value);
+        whiteActionDiv.appendChild(btnW);
+
+        const btnD = document.createElement("button");
+        btnD.textContent = action.label;
+        btnD.className = action.value > 0 ? 'positive' : 'negative';
+        btnD.onclick = () => recordAction('dark', currentCap, action.label, action.value);
+        darkActionDiv.appendChild(btnD);
+      });
+    }
+
+    function selectCap(number, team) {
+      currentCap = number;
+      currentTeam = team;
+      showToast(`Selected ${team} ${number}`);
+    }
+
+    function recordAction(team, cap, action, value) {
+      if (action === "Score") {
+        if (team === "white") whiteScore += 1;
+        else darkScore += 1;
+        document.getElementById("whiteScore").textContent = whiteScore;
+        document.getElementById("darkScore").textContent = darkScore;
+      }
+      showToast(`${team} ${cap} - ${action} recorded`);
+    }
+
+    function undoLastAction() {
+      showToast("Last action undone (not implemented)");
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.className = "toast show";
+      setTimeout(() => toast.className = "toast", 1000);
+    }
+
+    window.onload = () => {
+      populateTeams();
+      renderCapButtons();
+      renderActionButtons();
+    };
   </script>
 </body>
 </html>
