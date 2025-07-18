@@ -30,74 +30,6 @@
       color: #003366;
       margin: 0;
     }
-    h2 {
-      margin-top: 30px;
-      font-size: 1.4em;
-      color: #222;
-    }
-    .team-section {
-      margin-bottom: 20px;
-    }
-    .player-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 10px;
-    }
-    button {
-      padding: 12px;
-      font-size: 14px;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s ease, border-color 0.2s ease;
-    }
-    button:hover {
-      background-color: #dceaff;
-      border-color: #0077cc;
-    }
-    .dark-player {
-      background-color: #003366;
-      color: #fff;
-    }
-    .positive {
-      background-color: #28a745;
-      color: white;
-    }
-    .positive:hover {
-      background-color: #218838;
-    }
-    .negative {
-      background-color: #dc3545;
-      color: white;
-    }
-    .negative:hover {
-      background-color: #c82333;
-    }
-    .summary-buttons {
-      margin-top: 40px;
-      text-align: center;
-    }
-    .summary-buttons button {
-      margin: 10px;
-      padding: 12px 20px;
-      font-size: 14px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .summary-buttons button:hover {
-      background-color: #1e7e34;
-    }
-    select, input {
-      padding: 6px;
-      margin-top: 10px;
-    }
-    label {
-      font-weight: bold;
-    }
     .scoreboard {
       text-align: center;
       font-size: 18px;
@@ -111,86 +43,168 @@
     .team-select label {
       margin-right: 10px;
     }
+    button {
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .positive {
+      background-color: #28a745;
+      color: white;
+    }
+    .negative {
+      background-color: #dc3545;
+      color: white;
+    }
   </style>
 </head>
 <body>
+  <header>
+    <img src="logo.png" alt="Logo" />
+    <h1>Water Polo Tracker</h1>
+  </header>
 
-<header>
-  <img src="logo.png" alt="Logo" />
-  <h1>Water Polo Tracker</h1>
-</header>
+  <div style="text-align: center; margin-bottom: 10px;">
+    <label for="gameName">Game Name:</label>
+    <input id="gameName" placeholder="Game name or date" />
+  </div>
 
-<div style="text-align: center; margin-bottom: 10px;">
-  <label for="gameName">Game Name:</label>
-  <input id="gameName" placeholder="Game name or date" />
-</div>
+  <div style="text-align: center; margin-bottom: 20px;">
+    <label for="quarterSelect">Current Quarter:</label>
+    <select id="quarterSelect">
+      <option value="Q1">Q1</option>
+      <option value="Q2">Q2</option>
+      <option value="Q3">Q3</option>
+      <option value="Q4">Q4</option>
+    </select>
+  </div>
 
-<div style="text-align: center; margin-bottom: 20px;">
-  <label for="quarterSelect">Current Quarter:</label>
-  <select id="quarterSelect">
-    <option value="Q1">Q1</option>
-    <option value="Q2">Q2</option>
-    <option value="Q3">Q3</option>
-    <option value="Q4">Q4</option>
-  </select>
-</div>
+  <div class="team-select">
+    <label for="whiteTeamSelect">White Team:</label>
+    <select id="whiteTeamSelect">
+      <option value="Tigers">Tigers</option>
+      <option value="Lions">Lions</option>
+      <option value="Leopards">Leopards</option>
+      <option value="Jaguars">Jaguars</option>
+      <option value="Caracals">Caracals</option>
+      <option value="Barbells">Barbells</option>
+      <option value="Gryphons">Gryphons</option>
+      <option value="Dragons">Dragons</option>
+      <option value="Centaurs">Centaurs</option>
+      <option value="Bullcats">Bullcats</option>
+      <option value="Kestrels">Kestrels</option>
+      <option value="Eagles">Eagles</option>
+      <option value="Condors">Condors</option>
+      <option value="Falcons">Falcons</option>
+      <option value="Ospreys">Ospreys</option>
+      <option value="Hawks">Hawks</option>
+      <option value="Harriers">Harriers</option>
+      <option value="Kites">Kites</option>
+      <option value="Vultures">Vultures</option>
+    </select>
+    <label for="darkTeamSelect">Dark Team:</label>
+    <select id="darkTeamSelect">
+      <option value="Tigers">Tigers</option>
+      <option value="Lions">Lions</option>
+      <option value="Leopards">Leopards</option>
+      <option value="Jaguars">Jaguars</option>
+      <option value="Caracals">Caracals</option>
+      <option value="Barbells">Barbells</option>
+      <option value="Gryphons">Gryphons</option>
+      <option value="Dragons">Dragons</option>
+      <option value="Centaurs">Centaurs</option>
+      <option value="Bullcats">Bullcats</option>
+      <option value="Kestrels">Kestrels</option>
+      <option value="Eagles">Eagles</option>
+      <option value="Condors">Condors</option>
+      <option value="Falcons">Falcons</option>
+      <option value="Ospreys">Ospreys</option>
+      <option value="Hawks">Hawks</option>
+      <option value="Harriers">Harriers</option>
+      <option value="Kites">Kites</option>
+      <option value="Vultures">Vultures</option>
+    </select>
+  </div>
 
-<div class="team-select">
-  <label for="whiteTeamSelect">White Team:</label>
-  <select id="whiteTeamSelect">
-    <option value="Tigers">Tigers</option>
-    <option value="Lions">Lions</option>
-    <option value="Leopards">Leopards</option>
-    <option value="Jaguars">Jaguars</option>
-    <option value="Caracals">Caracals</option>
-    <option value="Barbells">Barbells</option>
-    <option value="Gryphons">Gryphons</option>
-    <option value="Dragons">Dragons</option>
-    <option value="Centaurs">Centaurs</option>
-    <option value="Bullcats">Bullcats</option>
-    <option value="Kestrels">Kestrels</option>
-    <option value="Eagles">Eagles</option>
-    <option value="Condors">Condors</option>
-    <option value="Falcons">Falcons</option>
-    <option value="Ospreys">Ospreys</option>
-    <option value="Hawks">Hawks</option>
-    <option value="Harriers">Harriers</option>
-    <option value="Kites">Kites</option>
-    <option value="Vultures">Vultures</option>
-  </select>
-  <label for="darkTeamSelect">Dark Team:</label>
-  <select id="darkTeamSelect">
-    <option value="Tigers">Tigers</option>
-    <option value="Lions">Lions</option>
-    <option value="Leopards">Leopards</option>
-    <option value="Jaguars">Jaguars</option>
-    <option value="Caracals">Caracals</option>
-    <option value="Barbells">Barbells</option>
-    <option value="Gryphons">Gryphons</option>
-    <option value="Dragons">Dragons</option>
-    <option value="Centaurs">Centaurs</option>
-    <option value="Bullcats">Bullcats</option>
-    <option value="Kestrels">Kestrels</option>
-    <option value="Eagles">Eagles</option>
-    <option value="Condors">Condors</option>
-    <option value="Falcons">Falcons</option>
-    <option value="Ospreys">Ospreys</option>
-    <option value="Hawks">Hawks</option>
-    <option value="Harriers">Harriers</option>
-    <option value="Kites">Kites</option>
-    <option value="Vultures">Vultures</option>
-  </select>
-</div>
+  <div class="scoreboard">
+    Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
+  </div>
 
-<div class="scoreboard">
-  Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
-</div>
+  <div style="text-align: center; margin-bottom: 20px;">
+    <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
+  </div>
 
-<div style="text-align: center; margin-bottom: 20px;">
-  <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
-</div>
+  <script>
+    const whiteScoreElement = document.getElementById('whiteScore');
+    const darkScoreElement = document.getElementById('darkScore');
+    let whiteScore = 0;
+    let darkScore = 0;
 
-<!-- Existing team and player content remains unchanged below -->
+    function startVoiceRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.start();
 
+      recognition.onresult = function(event) {
+        const command = event.results[0][0].transcript.toLowerCase();
+        const match = command.match(/(white|dark) (\d{1,2}) (score|assist|block|save|exclusion|goal let in|cap off|missed shot|5 meter against)/);
+        if (match) {
+          const team = match[1];
+          const number = match[2];
+          const action = match[3];
+          logAction(team, number, action);
+        }
+      };
+
+      recognition.onerror = function(event) {
+        alert('Error occurred: ' + event.error);
+      };
+    }
+
+    function logAction(team, number, action) {
+      let points = 0;
+      const positives = ['block', 'score', 'assist', 'swim off win', 'save'];
+      const negatives = ['exclusion', 'goal let in', 'missed shot', '5 meter against'];
+      const severe = ['cap off'];
+
+      if (positives.includes(action)) points = 1;
+      if (negatives.includes(action)) points = -1;
+      if (severe.includes(action)) points = -2;
+
+      if (team === 'white' && action === 'score') {
+        whiteScore++;
+        whiteScoreElement.textContent = whiteScore;
+      } else if (team === 'dark' && action === 'score') {
+        darkScore++;
+        darkScoreElement.textContent = darkScore;
+      }
+
+      const gameName = document.getElementById('gameName').value || 'Game';
+      const quarter = document.getElementById('quarterSelect').value;
+      const timestamp = new Date().toISOString();
+
+      const data = {
+        team,
+        number,
+        action,
+        points,
+        game: gameName,
+        quarter,
+        timestamp
+      };
+
+      fetch('https://script.google.com/macros/s/AKfycbzrKpT1vY2SC230TqYRX7NSRcyIUzmHQK8EDVE4m-A/dev', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+    }
+  </script>
 </body>
 </html>
