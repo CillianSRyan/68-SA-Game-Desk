@@ -63,6 +63,10 @@
       background-color: #dc3545;
       color: white;
     }
+    .action-buttons button {
+      margin: 3px;
+      padding: 8px 12px;
+    }
   </style>
 </head>
 <body>
@@ -88,49 +92,9 @@
 
   <div class="team-select">
     <label for="whiteTeamSelect">White Team:</label>
-    <select id="whiteTeamSelect">
-      <option value="Tigers">Tigers</option>
-      <option value="Lions">Lions</option>
-      <option value="Leopards">Leopards</option>
-      <option value="Jaguars">Jaguars</option>
-      <option value="Caracals">Caracals</option>
-      <option value="Barbells">Barbells</option>
-      <option value="Gryphons">Gryphons</option>
-      <option value="Dragons">Dragons</option>
-      <option value="Centaurs">Centaurs</option>
-      <option value="Bullcats">Bullcats</option>
-      <option value="Kestrels">Kestrels</option>
-      <option value="Eagles">Eagles</option>
-      <option value="Condors">Condors</option>
-      <option value="Falcons">Falcons</option>
-      <option value="Ospreys">Ospreys</option>
-      <option value="Hawks">Hawks</option>
-      <option value="Harriers">Harriers</option>
-      <option value="Kites">Kites</option>
-      <option value="Vultures">Vultures</option>
-    </select>
+    <select id="whiteTeamSelect"></select>
     <label for="darkTeamSelect">Dark Team:</label>
-    <select id="darkTeamSelect">
-      <option value="Tigers">Tigers</option>
-      <option value="Lions">Lions</option>
-      <option value="Leopards">Leopards</option>
-      <option value="Jaguars">Jaguars</option>
-      <option value="Caracals">Caracals</option>
-      <option value="Barbells">Barbells</option>
-      <option value="Gryphons">Gryphons</option>
-      <option value="Dragons">Dragons</option>
-      <option value="Centaurs">Centaurs</option>
-      <option value="Bullcats">Bullcats</option>
-      <option value="Kestrels">Kestrels</option>
-      <option value="Eagles">Eagles</option>
-      <option value="Condors">Condors</option>
-      <option value="Falcons">Falcons</option>
-      <option value="Ospreys">Ospreys</option>
-      <option value="Hawks">Hawks</option>
-      <option value="Harriers">Harriers</option>
-      <option value="Kites">Kites</option>
-      <option value="Vultures">Vultures</option>
-    </select>
+    <select id="darkTeamSelect"></select>
   </div>
 
   <div class="scoreboard">
@@ -138,9 +102,9 @@
   </div>
 
   <div class="team-buttons" id="whiteButtons"></div>
+  <div class="action-buttons" id="whiteActions"></div>
   <div class="team-buttons" id="darkButtons"></div>
-
-  <div class="action-buttons" id="actionButtons"></div>
+  <div class="action-buttons" id="darkActions"></div>
 
   <div style="text-align: center; margin-bottom: 20px;">
     <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
@@ -155,34 +119,72 @@
     const streaks = {};
 
     const actions = ['score','assist','block','save','swim off win','exclusion','goal let in','missed shot','5 meter against','cap off'];
+    const teams = ["Tigers","Lions","Leopards","Jaguars","Caracals","Barbells","Gryphons","Dragons","Centaurs","Bullcats","Kestrels","Eagles","Condors","Falcons","Ospreys","Hawks","Harriers","Kites","Vultures"];
+
+    function populateTeamDropdowns() {
+      const whiteSelect = document.getElementById('whiteTeamSelect');
+      const darkSelect = document.getElementById('darkTeamSelect');
+      teams.forEach(team => {
+        let opt1 = document.createElement('option');
+        let opt2 = document.createElement('option');
+        opt1.value = opt1.text = team;
+        opt2.value = opt2.text = team;
+        whiteSelect.add(opt1);
+        darkSelect.add(opt2);
+      });
+    }
 
     function createButtons(team) {
-      const container = document.getElementById(team + 'Buttons');
+      const buttonContainer = document.getElementById(team + 'Buttons');
+      const actionContainer = document.getElementById(team + 'Actions');
       for (let i = 1; i <= 13; i++) {
         const btn = document.createElement('button');
         btn.innerText = team.charAt(0).toUpperCase() + team.slice(1) + ' ' + i;
         btn.className = team === 'white' ? 'white-button' : 'dark-button';
-        btn.onclick = () => showActions(team, i);
-        container.appendChild(btn);
+        buttonContainer.appendChild(btn);
       }
-    }
-
-    function showActions(team, number) {
-      const container = document.getElementById('actionButtons');
-      container.innerHTML = '';
       actions.forEach(action => {
         const btn = document.createElement('button');
         btn.innerText = action;
         btn.className = (['score','assist','block','save','swim off win'].includes(action)) ? 'positive' : 'negative';
-        btn.onclick = () => logAction(team, number, action);
-        container.appendChild(btn);
+        btn.onclick = () => {
+          const number = prompt(`Enter player number for ${team}`);
+          if (number) logAction(team, number, action);
+        };
+        actionContainer.appendChild(btn);
       });
       const undoBtn = document.createElement('button');
       undoBtn.innerText = 'Undo';
       undoBtn.onclick = undoAction;
-      container.appendChild(undoBtn);
+      actionContainer.appendChild(undoBtn);
     }
 
+    function logAction(team, number, action) {
+      actionLog.push({ team, number, action });
+      if (action === 'score') {
+        if (team === 'white') whiteScore++;
+        else darkScore++;
+        whiteScoreElement.innerText = whiteScore;
+        darkScoreElement.innerText = darkScore;
+      }
+    }
+
+    function undoAction() {
+      const last = actionLog.pop();
+      if (!last) return;
+      if (last.action === 'score') {
+        if (last.team === 'white') whiteScore--;
+        else darkScore--;
+        whiteScoreElement.innerText = whiteScore;
+        darkScoreElement.innerText = darkScore;
+      }
+    }
+
+    function startVoiceRecognition() {
+      // Voice logic placeholder
+    }
+
+    populateTeamDropdowns();
     createButtons('white');
     createButtons('dark');
   </script>
