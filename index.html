@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Water Polo Logger</title>
+  <title>68SA BCWLT3 Game Desk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -67,17 +67,27 @@
       margin: 3px;
       padding: 8px 12px;
     }
+    #gameTimer {
+      font-size: 1.2em;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
   <header>
     <img src="logo.png" alt="Logo" />
-    <h1>Water Polo Tracker</h1>
+    <h1>68SA BCWLT3 Game Desk</h1>
   </header>
 
   <div style="text-align: center; margin-bottom: 10px;">
     <label for="gameName">Game Name:</label>
     <input id="gameName" placeholder="Game name or date" />
+  </div>
+
+  <div style="text-align: center; margin-bottom: 10px;">
+    <button id="startGameBtn" onclick="startGame()">Start Game</button>
+    <button id="pauseGameBtn" onclick="pauseGame()" disabled>Pause Game</button>
+    <button id="endGameBtn" onclick="endGame()" disabled>End Game</button>
   </div>
 
   <div style="text-align: center; margin-bottom: 20px;">
@@ -99,6 +109,7 @@
 
   <div class="scoreboard">
     Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
+    <div id="gameTimer">00:00</div>
   </div>
 
   <div class="team-buttons" id="whiteButtons"></div>
@@ -116,7 +127,12 @@
     let whiteScore = 0;
     let darkScore = 0;
     const actionLog = [];
-    const streaks = {};
+    const streaks = {}; // e.g., streaks['white-5'] = ["score", "assist", ...]
+
+    let gameActive = false;
+    let timerRunning = false;
+    let timerInterval;
+    let secondsElapsed = 0;
 
     const actions = ['score','assist','block','save','swim off win','exclusion','goal let in','missed shot','5 meter against','cap off'];
     const teams = ["Tigers","Lions","Leopards","Jaguars","Caracals","Barbells","Gryphons","Dragons","Centaurs","Bullcats","Kestrels","Eagles","Condors","Falcons","Ospreys","Hawks","Harriers","Kites","Vultures"];
@@ -149,18 +165,40 @@
         btn.className = (['score','assist','block','save','swim off win'].includes(action)) ? 'positive' : 'negative';
         btn.onclick = () => {
           const number = prompt(`Enter player number for ${team}`);
-          if (number) logAction(team, number, action);
+          if (number && gameActive) logAction(team, number, action);
         };
         actionContainer.appendChild(btn);
       });
       const undoBtn = document.createElement('button');
       undoBtn.innerText = 'Undo';
-      undoBtn.onclick = undoAction;
+      undoBtn.onclick = () => {
+        const number = prompt(`Undo: Enter player number for ${team}`);
+        const action = prompt(`Undo: Enter action to undo for ${team} ${number}`);
+        if (number && action) undoAction(team, number, action);
+      };
       actionContainer.appendChild(undoBtn);
     }
 
     function logAction(team, number, action) {
-      actionLog.push({ team, number, action });
+      const key = `${team}-${number}`;
+      if (!streaks[key]) streaks[key] = [];
+
+      let scoreChange = 0;
+      const isPositive = ['score','assist','block','save','swim off win'].includes(action);
+      const isNegative = ['exclusion','goal let in','missed shot','5 meter against'].includes(action);
+      if (isPositive) {
+        streaks[key].push(action);
+        if (streaks[key].length >= 7) scoreChange = 2;
+        else if (streaks[key].length >= 5) scoreChange = 1.5;
+        else if (streaks[key].length >= 3) scoreChange = 1.25;
+        else scoreChange = 1;
+      } else {
+        streaks[key] = [];
+        scoreChange = (action === 'cap off') ? -2 : -1;
+      }
+
+      actionLog.push({ team, number, action, scoreChange });
+
       if (action === 'score') {
         if (team === 'white') whiteScore++;
         else darkScore++;
@@ -169,15 +207,62 @@
       }
     }
 
-    function undoAction() {
-      const last = actionLog.pop();
-      if (!last) return;
-      if (last.action === 'score') {
-        if (last.team === 'white') whiteScore--;
+    function undoAction(team, number, action) {
+      const idx = actionLog.findLastIndex(e => e.team === team && e.number === number && e.action === action);
+      if (idx === -1) return;
+
+      const removed = actionLog.splice(idx, 1)[0];
+
+      const key = `${team}-${number}`;
+      if (['score','assist','block','save','swim off win'].includes(action)) {
+        const s = streaks[key] || [];
+        const index = s.lastIndexOf(action);
+        if (index !== -1) s.splice(index, 1);
+      }
+
+      if (action === 'score') {
+        if (team === 'white') whiteScore--;
         else darkScore--;
         whiteScoreElement.innerText = whiteScore;
         darkScoreElement.innerText = darkScore;
       }
+    }
+
+    function startGame() {
+      gameActive = true;
+      timerRunning = true;
+      document.getElementById('startGameBtn').disabled = true;
+      document.getElementById('pauseGameBtn').disabled = false;
+      document.getElementById('endGameBtn').disabled = false;
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function pauseGame() {
+      timerRunning = !timerRunning;
+      if (timerRunning) {
+        timerInterval = setInterval(updateTimer, 1000);
+        document.getElementById('pauseGameBtn').innerText = 'Pause Game';
+      } else {
+        clearInterval(timerInterval);
+        document.getElementById('pauseGameBtn').innerText = 'Resume Game';
+      }
+    }
+
+    function endGame() {
+      gameActive = false;
+      timerRunning = false;
+      clearInterval(timerInterval);
+      document.getElementById('startGameBtn').disabled = false;
+      document.getElementById('pauseGameBtn').disabled = true;
+      document.getElementById('endGameBtn').disabled = true;
+    }
+
+    function updateTimer() {
+      if (!timerRunning) return;
+      secondsElapsed++;
+      const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+      const seconds = String(secondsElapsed % 60).padStart(2, '0');
+      document.getElementById('gameTimer').innerText = `${minutes}:${seconds}`;
     }
 
     function startVoiceRecognition() {
