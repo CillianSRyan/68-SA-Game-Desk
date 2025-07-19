@@ -176,16 +176,20 @@
       });
     }
 
- function sendToSheet(data) {
-  fetch('https://script.google.com/macros/s/AKfycbysPBJy6n-lWOZMAsvKOPIj92KiatxG3WApoMugFN-LqJWxxumbqs0SYDp3JuVDICVe/exec', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(response => response.text())
-  .then(result => console.log("Google Sheet Response:", result))
-  .catch(error => console.error("Sheet Error:", error));
-}
+    function sendToSheet(data) {
+fetch('https://script.google.com/macros/s/AKfycbyNn4Lng-QI_X0dVdUjPVtd9cdAKlbORp__A340_yoTOxv9kaaM_OsoP3bkmn319ugiEQ/exec', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(data)
+})
+.then(response => response.text())
+.then(result => {
+  console.log('Success:', result);
+})
+.catch(error => {
+  console.error('Error:', error);
+});
+
     }
 
     let timerInterval;
