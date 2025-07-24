@@ -175,22 +175,46 @@
         darkSelect.appendChild(darkOption);
       });
     }
+function recordAction(team, cap, action) {
+  if (!gameRunning) return;
 
-    function sendToSheet(data) {
-fetch('https://script.google.com/macros/s/AKfycbyNn4Lng-QI_X0dVdUjPVtd9cdAKlbORp__A340_yoTOxv9kaaM_OsoP3bkmn319ugiEQ/exec', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify(data)
-})
-.then(response => response.text())
-.then(result => {
-  console.log('Success:', result);
-})
-.catch(error => {
-  console.error('Error:', error);
-});
+  const gameName = document.getElementById("gameName").value;
+  const whiteTeam = document.getElementById("whiteTeamSelect").value;
+  const darkTeam = document.getElementById("darkTeamSelect").value;
+  const quarter = document.getElementById("quarterSelect").value;
+  const time = document.getElementById("gameTimer").textContent;
 
-    }
+  const data = {
+    gameName,
+    whiteTeam,
+    darkTeam,
+    team,
+    cap,
+    action,
+    time,
+    quarter
+  };
+
+  sendToMakeWebhook(data);
+
+  showToast(`${team} ${cap} – ${action}`);
+}
+    function sendToMakeWebhook(data) {
+  fetch("https://hook.eu2.make.com/jtaf9kcqdh7kqimreichuaj3i7fi8jhr", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) throw new Error("Failed to send to Make.com");
+    console.log("✅ Sent to Make.com successfully");
+  })
+  .catch(error => {
+    console.error("❌ Error sending to Make.com:", error);
+  });
+}
 
     let timerInterval;
     let secondsElapsed = 0;
