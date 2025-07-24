@@ -175,18 +175,39 @@
         darkSelect.appendChild(darkOption);
       });
     }
+    const pointsMap = {
+  "Score": 1,
+  "Assist": 1,
+  "Block FP": 1,
+  "Swim Off win": 1,
+  "Save (GK)": 1,
+  "Exclusion": -1,
+  "Goal Let In (GK)": -1,
+  "Missed Shot (FP)": -1,
+  "Cap Off": -2
+};
+
+let playerPoints = {}; // key: "team_cap" → value: points
+let teamPoints = { white: 0, dark: 0 };    
 function recordAction(team, cap, action) {
   if (!gameRunning) return;
 
-  const timestamp = new Date().toISOString();
   const gameName = document.getElementById("gameName").value;
   const whiteTeam = document.getElementById("whiteTeamSelect").value;
   const darkTeam = document.getElementById("darkTeamSelect").value;
   const quarter = document.getElementById("quarterSelect").value;
   const time = document.getElementById("gameTimer").textContent;
 
+  const playerKey = `${team}_${cap}`;
+  const points = pointsMap[action] || 0;
+
+  // Update player points
+  playerPoints[playerKey] = (playerPoints[playerKey] || 0) + points;
+
+  // Update team points
+  teamPoints[team] = (teamPoints[team] || 0) + points;
+
   const data = {
-    timestamp,
     gameName,
     whiteTeam,
     darkTeam,
@@ -194,12 +215,14 @@ function recordAction(team, cap, action) {
     cap,
     action,
     time,
-    quarter
+    quarter,
+    points,
+    playerTotal: playerPoints[playerKey],
+    teamTotal: teamPoints[team]
   };
 
   sendToMakeWebhook(data);
-
-  showToast(`${team} ${cap} – ${action}`);
+  showToast(`${team} ${cap} – ${action} (${points >= 0 ? '+' : ''}${points} pts)`);
 }
     function sendToMakeWebhook(data) {
   fetch("https://hook.eu2.make.com/jtaf9kcqdh7kqimreichuaj3i7fi8jhr", {
