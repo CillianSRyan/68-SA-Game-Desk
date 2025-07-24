@@ -281,10 +281,6 @@ function recordAction(team, cap, action) {
   showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
 }
 
-      recordAction(lastSelectedTeam, lastSelectedCap, action);
-      showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
-    }
-
     function renderButtons() {
       const whiteButtons = document.getElementById("whiteButtons");
       const whiteActions = document.getElementById("whiteActions");
