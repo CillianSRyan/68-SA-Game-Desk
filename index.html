@@ -178,6 +178,7 @@
 function recordAction(team, cap, action) {
   if (!gameRunning) return;
 
+  const timestamp = new Date().toISOString();
   const gameName = document.getElementById("gameName").value;
   const whiteTeam = document.getElementById("whiteTeamSelect").value;
   const darkTeam = document.getElementById("darkTeamSelect").value;
@@ -185,6 +186,7 @@ function recordAction(team, cap, action) {
   const time = document.getElementById("gameTimer").textContent;
 
   const data = {
+    timestamp,
     gameName,
     whiteTeam,
     darkTeam,
