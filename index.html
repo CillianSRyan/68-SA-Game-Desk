@@ -264,24 +264,22 @@ function recordAction(team, cap, action) {
       showToast(`${team === 'white' ? 'White' : 'Dark'} ${cap} selected`);
     }
 
-    function logAction(action) {
-      if (!gameRunning || lastSelectedCap === null || lastSelectedTeam === null) {
-        showToast("Select a cap & start game first");
-        return;
-      }
-      const gameName = document.getElementById("gameName").value || "Unnamed Game";
-      const whiteTeam = document.getElementById("whiteTeamSelect").value;
-      const darkTeam = document.getElementById("darkTeamSelect").value;
-      const time = document.getElementById("gameTimer").textContent;
-      const quarter = document.getElementById("quarterSelect").value;
-      const timestamp = new Date().toLocaleString();
+   function logAction(action) {
+  if (!gameRunning || lastSelectedCap === null || lastSelectedTeam === null) {
+    showToast("Select a cap & start game first");
+    return;
+  }
 
-      if (action === "Score") {
-        if (lastSelectedTeam === 'white') whiteScore++;
-        else darkScore++;
-        whiteScoreDisplay.textContent = whiteScore;
-        darkScoreDisplay.textContent = darkScore;
-      }
+  if (action === "Score") {
+    if (lastSelectedTeam === 'white') whiteScore++;
+    else darkScore++;
+    whiteScoreDisplay.textContent = whiteScore;
+    darkScoreDisplay.textContent = darkScore;
+  }
+
+  recordAction(lastSelectedTeam, lastSelectedCap, action); // <- sends to Make.com
+  showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
+}
 
       recordAction(lastSelectedTeam, lastSelectedCap, action);
       showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
