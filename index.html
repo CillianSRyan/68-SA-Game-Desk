@@ -283,7 +283,7 @@ function recordAction(team, cap, action) {
         darkScoreDisplay.textContent = darkScore;
       }
 
-      sendToSheet({ timestamp, gameName, whiteTeam, darkTeam, team: lastSelectedTeam, cap: lastSelectedCap, action, time, quarter });
+      recordAction(lastSelectedTeam, lastSelectedCap, action);
       showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
     }
 
