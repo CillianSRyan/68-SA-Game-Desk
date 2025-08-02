@@ -1,356 +1,225 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>68SA BCWLT3 Game Desk</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background-color: #d5e6f6;
-      background-image: url('watermark.png');
-      background-repeat: no-repeat;
-      background-position: bottom right;
-      background-size: 80px;
-      margin: 0;
-      padding: 20px;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    header img {
-      height: 60px;
-    }
-    h1 {
-      font-size: 2.5em;
-      color: #003366;
-      margin: 0;
-    }
-    .scoreboard {
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-    .team-select, .team-buttons, .action-buttons {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .team-buttons button {
-      padding: 10px;
-      margin: 5px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .dark-button {
-      background-color: #003366;
-      color: white;
-    }
-    .white-button {
-      background-color: #ffffff;
-      color: #003366;
-    }
-    .positive {
-      background-color: #28a745;
-      color: white;
-    }
-    .negative {
-      background-color: #dc3545;
-      color: white;
-    }
-    .action-buttons button {
-      margin: 3px;
-      padding: 8px 12px;
-    }
-    #gameTimer {
-      font-size: 1.2em;
-      margin-top: 10px;
-    }
-    #toast {
-      visibility: hidden;
-      min-width: 200px;
-      background-color: #333;
-      color: #fff;
-      text-align: center;
-      border-radius: 5px;
-      padding: 10px;
-      position: fixed;
-      z-index: 1;
-      left: 50%;
-      bottom: 30px;
-      transform: translateX(-50%);
-      font-size: 16px;
-    }
-    #toast.show {
-      visibility: visible;
-      animation: fadein 0.5s, fadeout 0.5s 1s;
-    }
-    @keyframes fadein {
-      from {bottom: 20px; opacity: 0;}
-      to {bottom: 30px; opacity: 1;}
-    }
-    @keyframes fadeout {
-      from {bottom: 30px; opacity: 1;}
-      to {bottom: 20px; opacity: 0;}
-    }
-  </style>
-</head>
-<body onload="renderButtons()">
-  <header>
-    <img src="logo.png" alt="Logo" />
-    <h1>68SA BCWLT3 Game Desk</h1>
-  </header>
-
-  <div style="text-align: center; margin-bottom: 10px;">
-    <label for="gameName">Game Name:</label>
-    <input id="gameName" placeholder="Game name or date" />
-  </div>
-
-  <div style="text-align: center; margin-bottom: 10px;">
-    <button id="startGameBtn" onclick="toggleGameState()">Start Game</button>
-    <button id="endGameBtn" onclick="endGame()" disabled>End Game</button>
-  </div>
-
-  <div style="text-align: center; margin-bottom: 20px;">
-    <label for="quarterSelect">Current Quarter:</label>
-    <select id="quarterSelect">
-      <option value="Q1">Q1</option>
-      <option value="Q2">Q2</option>
-      <option value="Q3">Q3</option>
-      <option value="Q4">Q4</option>
-    </select>
-  </div>
-
-  <div class="team-select">
-    <label for="whiteTeamSelect">White Team:</label>
-    <select id="whiteTeamSelect"></select>
-    <label for="darkTeamSelect">Dark Team:</label>
-    <select id="darkTeamSelect"></select>
-  </div>
-
-  <div class="scoreboard">
-    Score — White: <span id="whiteScore">0</span> | Dark: <span id="darkScore">0</span>
-    <div id="gameTimer">00:00</div>
-  </div>
-
-  <div class="team-buttons" id="whiteButtons"></div>
-  <div class="action-buttons" id="whiteActions"></div>
-  <div class="team-buttons" id="darkButtons"></div>
-  <div class="action-buttons" id="darkActions"></div>
-
-  <div style="text-align: center;">
-    <button onclick="undoLastAction()">Undo</button>
-  </div>
-
-  <div style="text-align: center; margin-bottom: 20px;">
-    <button onclick="startVoiceRecognition()">🎙️ Start Voice</button>
-  </div>
-
-  <div id="toast"></div>
-
-  <script>
-    const teamList = ["Tigers","Lions","Leopards","Jaguars","Caracals","Barbells","Gryphons","Dragons","Centaurs","Bullcats","Kestrels","Eagles","Condors","Falcons","Ospreys","Hawks","Harriers","Kites","Vultures"];
-
-    window.onload = () => {
-      renderButtons();
-      populateTeamDropdowns();
-    }
-
-    function populateTeamDropdowns() {
-      const whiteSelect = document.getElementById("whiteTeamSelect");
-      const darkSelect = document.getElementById("darkTeamSelect");
-
-      teamList.forEach(team => {
-        const whiteOption = document.createElement("option");
-        whiteOption.value = whiteOption.textContent = team;
-        whiteSelect.appendChild(whiteOption);
-
-        const darkOption = document.createElement("option");
-        darkOption.value = darkOption.textContent = team;
-        darkSelect.appendChild(darkOption);
-      });
-    }
-    const pointsMap = {
-  "Score": 1,
-  "Assist": 1,
-  "Block FP": 1,
-  "Swim Off win": 1,
-  "Save (GK)": 1,
-  "Exclusion": -1,
-  "Goal Let In (GK)": -1,
-  "Missed Shot (FP)": -1,
-  "Cap Off": -2
-};
-
-let playerPoints = {}; // key: "team_cap" → value: points
-let teamPoints = { white: 0, dark: 0 };    
-function recordAction(team, cap, action) {
-  if (!gameRunning) return;
-
-  const gameName = document.getElementById("gameName").value;
-  const whiteTeam = document.getElementById("whiteTeamSelect").value;
-  const darkTeam = document.getElementById("darkTeamSelect").value;
-  const quarter = document.getElementById("quarterSelect").value;
-  const time = document.getElementById("gameTimer").textContent;
-
-  const playerKey = `${team}_${cap}`;
-  const points = pointsMap[action] || 0;
-
-  // Update player points
-  playerPoints[playerKey] = (playerPoints[playerKey] || 0) + points;
-
-  // Update team points
-  teamPoints[team] = (teamPoints[team] || 0) + points;
-
-  const data = {
-    gameName,
-    whiteTeam,
-    darkTeam,
-    team,
-    cap,
-    action,
-    time,
-    quarter,
-    points,
-    playerTotal: playerPoints[playerKey],
-    teamTotal: teamPoints[team]
+<script>
+  const teamList = ["Tigers","Lions","Leopards","Jaguars","Caracals","Barbells","Gryphons","Dragons","Centaurs","Bullcats","Kestrels","Eagles","Condors","Falcons","Ospreys","Hawks","Harriers","Kites","Vultures"];
+  const pointsMap = {
+    "Score": 1,
+    "Assist": 1,
+    "Block FP": 1,
+    "Swim Off win": 1,
+    "Save (GK)": 1,
+    "Exclusion": -1,
+    "Goal Let In (GK)": -1,
+    "Missed Shot (FP)": -1,
+    "Cap Off": -2
   };
 
-  sendToMakeWebhook(data);
-  showToast(`${team} ${cap} – ${action} (${points >= 0 ? '+' : ''}${points} pts)`);
-}
-    function sendToMakeWebhook(data) {
-  fetch("https://hook.eu2.make.com/jtaf9kcqdh7kqimreichuaj3i7fi8jhr", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  })
-  .then(response => {
-    if (!response.ok) throw new Error("Failed to send to Make.com");
-    console.log("✅ Sent to Make.com successfully");
-  })
-  .catch(error => {
-    console.error("❌ Error sending to Make.com:", error);
-  });
-}
+  let playerPoints = {}; // key: "team_cap" → value: points
+  let teamPoints = { white: 0, dark: 0 };
+  const actionStack = []; // Track actions for undo
 
-    let timerInterval;
-    let secondsElapsed = 0;
-    let gameRunning = false;
+  window.onload = () => {
+    renderButtons();
+    populateTeamDropdowns();
+  }
 
-    function toggleGameState() {
-      gameRunning = !gameRunning;
-      const startBtn = document.getElementById("startGameBtn");
-      const endBtn = document.getElementById("endGameBtn");
-      startBtn.textContent = gameRunning ? "Pause Game" : "Start Game";
-      endBtn.disabled = !gameRunning;
+  function populateTeamDropdowns() {
+    const whiteSelect = document.getElementById("whiteTeamSelect");
+    const darkSelect = document.getElementById("darkTeamSelect");
 
-      if (gameRunning) {
-        timerInterval = setInterval(() => {
-          secondsElapsed++;
-          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-          const secs = String(secondsElapsed % 60).padStart(2, '0');
-          document.getElementById("gameTimer").textContent = `${mins}:${secs}`;
-        }, 1000);
-        showToast("Game started");
-      } else {
-        clearInterval(timerInterval);
-        showToast("Game paused");
-      }
-    }
+    teamList.forEach(team => {
+      const whiteOption = document.createElement("option");
+      whiteOption.value = whiteOption.textContent = team;
+      whiteSelect.appendChild(whiteOption);
 
-    function endGame() {
-      gameRunning = false;
+      const darkOption = document.createElement("option");
+      darkOption.value = darkOption.textContent = team;
+      darkSelect.appendChild(darkOption);
+    });
+  }
+
+  function recordAction(team, cap, action) {
+    if (!gameRunning) return;
+
+    const gameName = document.getElementById("gameName").value;
+    const whiteTeam = document.getElementById("whiteTeamSelect").value;
+    const darkTeam = document.getElementById("darkTeamSelect").value;
+    const quarter = document.getElementById("quarterSelect").value;
+    const time = document.getElementById("gameTimer").textContent;
+
+    const playerKey = `${team}_${cap}`;
+    const points = pointsMap[action] || 0;
+
+    playerPoints[playerKey] = (playerPoints[playerKey] || 0) + points;
+    teamPoints[team] = (teamPoints[team] || 0) + points;
+
+    const data = {
+      gameName,
+      whiteTeam,
+      darkTeam,
+      team,
+      cap,
+      action,
+      time,
+      quarter,
+      points,
+      playerTotal: playerPoints[playerKey],
+      teamTotal: teamPoints[team]
+    };
+
+    sendToMakeWebhook(data);
+    showToast(`${team} ${cap} – ${action} (${points >= 0 ? '+' : ''}${points} pts)`);
+  }
+
+  function sendToMakeWebhook(data) {
+    fetch("https://hook.eu2.make.com/jtaf9kcqdh7kqimreichuaj3i7fi8jhr", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      if (!response.ok) throw new Error("Failed to send to Make.com");
+      console.log("✅ Sent to Make.com successfully");
+    })
+    .catch(error => {
+      console.error("❌ Error sending to Make.com:", error);
+    });
+  }
+
+  let timerInterval;
+  let secondsElapsed = 0;
+  let gameRunning = false;
+
+  function toggleGameState() {
+    gameRunning = !gameRunning;
+    const startBtn = document.getElementById("startGameBtn");
+    const endBtn = document.getElementById("endGameBtn");
+    startBtn.textContent = gameRunning ? "Pause Game" : "Start Game";
+    endBtn.disabled = !gameRunning;
+
+    if (gameRunning) {
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        document.getElementById("gameTimer").textContent = `${mins}:${secs}`;
+      }, 1000);
+      showToast("Game started");
+    } else {
       clearInterval(timerInterval);
-      document.getElementById("startGameBtn").textContent = "Start Game";
-      document.getElementById("endGameBtn").disabled = true;
-      secondsElapsed = 0;
-      document.getElementById("gameTimer").textContent = "00:00";
-      showToast("Game ended");
+      showToast("Game paused");
     }
-
-    let lastSelectedCap = null;
-    let lastSelectedTeam = null;
-    const whiteScoreDisplay = document.getElementById("whiteScore");
-    const darkScoreDisplay = document.getElementById("darkScore");
-    let whiteScore = 0;
-    let darkScore = 0;
-
-    function selectCap(cap, team) {
-      lastSelectedCap = cap;
-      lastSelectedTeam = team;
-      showToast(`${team === 'white' ? 'White' : 'Dark'} ${cap} selected`);
-    }
-
-   function logAction(action) {
-  if (!gameRunning || lastSelectedCap === null || lastSelectedTeam === null) {
-    showToast("Select a cap & start game first");
-    return;
   }
 
-  if (action === "Score") {
-    if (lastSelectedTeam === 'white') whiteScore++;
-    else darkScore++;
-    whiteScoreDisplay.textContent = whiteScore;
-    darkScoreDisplay.textContent = darkScore;
+  function endGame() {
+    gameRunning = false;
+    clearInterval(timerInterval);
+    document.getElementById("startGameBtn").textContent = "Start Game";
+    document.getElementById("endGameBtn").disabled = true;
+    secondsElapsed = 0;
+    document.getElementById("gameTimer").textContent = "00:00";
+    showToast("Game ended");
   }
 
-  recordAction(lastSelectedTeam, lastSelectedCap, action); // <- sends to Make.com
-  showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
-}
+  let lastSelectedCap = null;
+  let lastSelectedTeam = null;
+  const whiteScoreDisplay = document.getElementById("whiteScore");
+  const darkScoreDisplay = document.getElementById("darkScore");
+  let whiteScore = 0;
+  let darkScore = 0;
 
-    function renderButtons() {
-      const whiteButtons = document.getElementById("whiteButtons");
-      const whiteActions = document.getElementById("whiteActions");
-      const darkButtons = document.getElementById("darkButtons");
-      const darkActions = document.getElementById("darkActions");
-      whiteButtons.innerHTML = darkButtons.innerHTML = whiteActions.innerHTML = darkActions.innerHTML = "";
+  function selectCap(cap, team) {
+    lastSelectedCap = cap;
+    lastSelectedTeam = team;
+    showToast(`${team === 'white' ? 'White' : 'Dark'} ${cap} selected`);
+  }
 
-      for (let i = 1; i <= 13; i++) {
-        const whiteBtn = document.createElement("button");
-        whiteBtn.textContent = `White ${i}`;
-        whiteBtn.className = "white-button";
-        whiteBtn.onclick = () => selectCap(i, 'white');
-        whiteButtons.appendChild(whiteBtn);
-
-        const darkBtn = document.createElement("button");
-        darkBtn.textContent = `Dark ${i}`;
-        darkBtn.className = "dark-button";
-        darkBtn.onclick = () => selectCap(i, 'dark');
-        darkButtons.appendChild(darkBtn);
-      }
-
-      const actions = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)", "Exclusion", "Goal Let In (GK)", "Missed Shot (FP)", "Cap Off"];
-      const types = ["positive", "positive", "positive", "positive", "positive", "negative", "negative", "negative", "negative"];
-
-      actions.forEach((action, index) => {
-        const btnWhite = document.createElement("button");
-        btnWhite.textContent = action;
-        btnWhite.className = types[index];
-        btnWhite.onclick = () => logAction(action);
-        whiteActions.appendChild(btnWhite);
-
-        const btnDark = document.createElement("button");
-        btnDark.textContent = action;
-        btnDark.className = types[index];
-        btnDark.onclick = () => logAction(action);
-        darkActions.appendChild(btnDark);
-      });
+  function logAction(action) {
+    if (!gameRunning || lastSelectedCap === null || lastSelectedTeam === null) {
+      showToast("Select a cap & start game first");
+      return;
     }
 
-    function showToast(message) {
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.className = "show";
-      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1000);
+    const actionData = {
+      team: lastSelectedTeam,
+      cap: lastSelectedCap,
+      action
+    };
+    actionStack.push(actionData);
+
+    if (action === "Score") {
+      if (lastSelectedTeam === 'white') whiteScore++;
+      else darkScore++;
+      whiteScoreDisplay.textContent = whiteScore;
+      darkScoreDisplay.textContent = darkScore;
     }
-  </script>
-</body>
-</html>
+
+    recordAction(lastSelectedTeam, lastSelectedCap, action);
+    showToast(`${action} logged for ${lastSelectedTeam} ${lastSelectedCap}`);
+  }
+
+  function undoLastAction() {
+    if (actionStack.length === 0) {
+      showToast("Nothing to undo");
+      return;
+    }
+
+    const last = actionStack.pop();
+
+    // Undo scoreboard
+    if (last.action === "Score") {
+      if (last.team === 'white' && whiteScore > 0) whiteScore--;
+      if (last.team === 'dark' && darkScore > 0) darkScore--;
+      whiteScoreDisplay.textContent = whiteScore;
+      darkScoreDisplay.textContent = darkScore;
+    }
+
+    showToast(`Last action undone: ${last.team} ${last.cap} – ${last.action}`);
+  }
+
+  function renderButtons() {
+    const whiteButtons = document.getElementById("whiteButtons");
+    const whiteActions = document.getElementById("whiteActions");
+    const darkButtons = document.getElementById("darkButtons");
+    const darkActions = document.getElementById("darkActions");
+    whiteButtons.innerHTML = darkButtons.innerHTML = whiteActions.innerHTML = darkActions.innerHTML = "";
+
+    for (let i = 1; i <= 13; i++) {
+      const whiteBtn = document.createElement("button");
+      whiteBtn.textContent = `White ${i}`;
+      whiteBtn.className = "white-button";
+      whiteBtn.onclick = () => selectCap(i, 'white');
+      whiteButtons.appendChild(whiteBtn);
+
+      const darkBtn = document.createElement("button");
+      darkBtn.textContent = `Dark ${i}`;
+      darkBtn.className = "dark-button";
+      darkBtn.onclick = () => selectCap(i, 'dark');
+      darkButtons.appendChild(darkBtn);
+    }
+
+    const actions = ["Score", "Assist", "Block FP", "Swim Off win", "Save (GK)", "Exclusion", "Goal Let In (GK)", "Missed Shot (FP)", "Cap Off"];
+    const types = ["positive", "positive", "positive", "positive", "positive", "negative", "negative", "negative", "negative"];
+
+    actions.forEach((action, index) => {
+      const btnWhite = document.createElement("button");
+      btnWhite.textContent = action;
+      btnWhite.className = types[index];
+      btnWhite.onclick = () => logAction(action);
+      whiteActions.appendChild(btnWhite);
+
+      const btnDark = document.createElement("button");
+      btnDark.textContent = action;
+      btnDark.className = types[index];
+      btnDark.onclick = () => logAction(action);
+      darkActions.appendChild(btnDark);
+    });
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.className = "show";
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 1000);
+  }
+</script>
