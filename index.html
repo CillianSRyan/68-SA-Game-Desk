@@ -51,6 +51,8 @@
     playerPoints[playerKey] = (playerPoints[playerKey] || 0) + points;
     teamPoints[team] = (teamPoints[team] || 0) + points;
 
+    const uniqueID = `${gameName}_${team}_${cap}_${action}_${Date.now()}`;
+
     const data = {
       gameName,
       whiteTeam,
