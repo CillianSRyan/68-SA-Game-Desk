@@ -206,20 +206,23 @@
       playerPoints[playerKey] = (playerPoints[playerKey] || 0) + points;
       teamPoints[team] = (teamPoints[team] || 0) + points;
 
-      const data = {
-        gameName,
-        whiteTeam,
-        darkTeam,
-        team,
-        cap,
-        action,
-        time,
-        quarter,
-        points,
-        playerTotal: playerPoints[playerKey],
-        teamTotal: teamPoints[team],
-        uniqueID
-      };
+      const timestamp = new Date().toISOString();
+      
+     const data = {
+  timestamp, 
+  gameName,
+  whiteTeam,
+  darkTeam,
+  team,
+  cap,
+  action,
+  time,
+  quarter,
+  points,
+  playerTotal: playerPoints[playerKey],
+  teamTotal: teamPoints[team],
+  uniqueID
+};
 
       sendToMakeWebhook(data);
       showToast(`${team} ${cap} – ${action} (${points >= 0 ? '+' : ''}${points} pts)`);
